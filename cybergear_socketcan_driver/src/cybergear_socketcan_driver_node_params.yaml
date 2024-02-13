@@ -1,0 +1,50 @@
+cybergear_socketcan_driver_node:
+  primary_id:
+    type: int
+    default_value: 0
+    validation:
+      bounds<>: [0, 255]
+  device_id:
+    type: int
+    default_value: 127
+    validation:
+      bounds<>: [0, 255]
+  send_frequency:
+    type: double
+    default_value: 8.0
+    validation:
+      gt<>: 0.0
+  joint_name:
+    type: string
+    default_value: cybergear
+    validation:
+      not_empty<>:
+  # TODO
+  #wait_power_on:
+  #  type: bool
+  #  default_value: false
+  anguler_position:
+    max:
+      type: double
+      default_value: 12.56637061
+    min:
+      type: double
+      default_value: -12.56637061
+  anguler_velocity:
+    max:
+      type: double
+      default_value: 30.0
+    min:
+      type: double
+      default_value: -30.0
+  anguler_effort:
+    max:
+      type: double
+      default_value: 12.0
+    min:
+      type: double
+      default_value: -12.0
+  temperature:
+    scale:
+      type: double
+      default_value: 0.1
