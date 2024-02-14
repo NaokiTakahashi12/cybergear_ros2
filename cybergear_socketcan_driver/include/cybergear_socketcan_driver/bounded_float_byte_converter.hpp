@@ -25,7 +25,7 @@ public:
   uint16_t toDoubleByte(const float value)
   {
     const float clamped_value = std::max(m_min, std::min(m_max, value));
-    return static_cast<uint16_t>((clamped_value + m_float_half_range) * m_byte_scale);
+    return static_cast<uint16_t>((clamped_value - m_min) * m_byte_scale);
   }
 
   std::array<uint8_t, 2> toByte(const float value)
@@ -41,18 +41,17 @@ public:
   float toFloat(const std::array<uint8_t, Size> & data, const unsigned int offset)
   {
     const uint16_t raw_data = data[0 + offset] << 8 | data[1 + offset];
-    return m_float_scale * static_cast<float>(raw_data) - m_float_half_range;
+    return m_float_scale * static_cast<float>(raw_data) + m_min;
   }
 
 private:
   float m_max, m_min;
-  float m_float_range, m_float_half_range;
+  float m_float_range;
   float m_float_scale, m_byte_scale;
 
   void updateRange()
   {
     m_float_range = m_max - m_min;
-    m_float_half_range = m_float_range / 2;
     m_float_scale = m_float_range / static_cast<float>(0xffff);
     m_byte_scale = static_cast<float>(0xffff) / m_float_range;
 
