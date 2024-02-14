@@ -38,6 +38,8 @@ private:
   std::unique_ptr<BoundedFloatByteConverter> m_anguler_velocity_converter;
   std::unique_ptr<BoundedFloatByteConverter> m_anguler_effort_converter;
   std::unique_ptr<ScaledFloatByteConverter> m_temperature_converter;
+  std::unique_ptr<BoundedFloatByteConverter> m_pid_kp_converter;
+  std::unique_ptr<BoundedFloatByteConverter> m_pid_kd_converter;
 
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr m_can_frame_subscriber;
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr m_can_frame_publisher;
@@ -69,6 +71,8 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(const rclcpp::NodeOpt
   m_anguler_velocity_converter(nullptr),
   m_anguler_effort_converter(nullptr),
   m_temperature_converter(nullptr),
+  m_pid_kp_converter(nullptr),
+  m_pid_kd_converter(nullptr),
   m_can_frame_subscriber(nullptr),
   m_can_frame_publisher(nullptr),
   m_joint_state_publisher(nullptr),
@@ -100,6 +104,12 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(const rclcpp::NodeOpt
     m_params->anguler_effort.min);
   m_temperature_converter = std::make_unique<ScaledFloatByteConverter>(
     m_params->temperature.scale);
+  m_pid_kp_converter = std::make_unique<BoundedFloatByteConverter>(
+    m_params->pid_gain_range.kp.max,
+    m_params->pid_gain_range.kp.min);
+  m_pid_kd_converter = std::make_unique<BoundedFloatByteConverter>(
+    m_params->pid_gain_range.kd.max,
+    m_params->pid_gain_range.kd.min);
 
   m_can_frame_publisher = this->create_publisher<can_msgs::msg::Frame>(
     "to_can_bus", 3);
@@ -185,7 +195,6 @@ void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
     m_last_anguler_velocity = joint_state_msg->velocity.at(0);
     m_joint_state_publisher->publish(std::move(joint_state_msg));
   }
-  // TODO imple
   if (m_joint_temperature_publisher) {
     auto temperature_msg = std::make_unique<sensor_msgs::msg::Temperature>();
     temperature_msg->header = header_msg;
@@ -198,17 +207,17 @@ void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
 void CybergearSocketCanDriverNode::sendCanFrameTimerCallback()
 {
   auto msg = std::make_unique<can_msgs::msg::Frame>();
+  const auto cmd_pos = m_anguler_position_converter->toByte(m_last_anguler_position);
+  const auto cmd_vel = m_anguler_velocity_converter->toByte(m_last_anguler_velocity);
+  const auto kp_gain = m_pid_kp_converter->toByte(m_params->pid_gain.kp);
+  const auto kd_gain = m_pid_kd_converter->toByte(m_params->pid_gain.kd);
+
   setDefaultCanFrame(msg);
 
-  decltype(auto) cmd_pos = m_anguler_position_converter->toByte(m_last_anguler_position);
-  std::copy(cmd_pos.begin(), cmd_pos.end(), msg->data.begin());
-
-  decltype(auto) cmd_vel = m_anguler_velocity_converter->toByte(m_last_anguler_velocity);
-  std::copy(cmd_vel.begin(), cmd_vel.end(), msg->data.begin() + 2);
-
-  // TODO imple
-  msg->data[5] = 0x0f;
-  msg->data[7] = 0x01;
+  std::copy(cmd_pos.cbegin(), cmd_pos.cend(), msg->data.begin());
+  std::copy(cmd_vel.cbegin(), cmd_vel.cend(), msg->data.begin() + 2);
+  std::copy(kp_gain.cbegin(), kp_gain.cend(), msg->data.begin() + 4);
+  std::copy(kd_gain.cbegin(), kd_gain.cend(), msg->data.begin() + 6);
 
   msg->id = m_cg_frame_id->getCommandId(
     m_anguler_effort_converter->toDoubleByte(0.0));

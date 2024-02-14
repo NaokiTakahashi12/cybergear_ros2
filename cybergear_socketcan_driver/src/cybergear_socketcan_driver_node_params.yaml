@@ -23,6 +23,10 @@ cybergear_socketcan_driver_node:
   #wait_power_on:
   #  type: bool
   #  default_value: false
+  temperature:
+    scale:
+      type: double
+      default_value: 0.1
   anguler_position:
     max:
       type: double
@@ -44,7 +48,25 @@ cybergear_socketcan_driver_node:
     min:
       type: double
       default_value: -12.0
-  temperature:
-    scale:
+  pid_gain_range:
+    kp:
+      max:
+        type: double
+        default_value: 500.0
+      min:
+        type: double
+        default_value: 0.0
+    kd:
+      max:
+        type: double
+        default_value: 5.0
+      min:
+        type: double
+        default_value: 0.0
+  pid_gain:
+    kp:
       type: double
-      default_value: 0.1
+      default_value: 0.1144426642
+    kd:
+      type: double
+      default_value: 0.001144426642
