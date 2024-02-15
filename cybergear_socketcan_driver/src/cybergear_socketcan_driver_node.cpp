@@ -67,6 +67,8 @@ private:
     const std_srvs::srv::SetBool::Request::ConstSharedPtr & request,
     const std_srvs::srv::SetBool::Response::SharedPtr & response);
 
+  void procFeedbackPacket(const can_msgs::msg::Frame &);
+
   void setDefaultCanFrame(can_msgs::msg::Frame::UniquePtr &);
 
   void sendEnableTorque();
@@ -182,8 +184,6 @@ void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
     return;
   }
   // TODO m_params->wait_power_on
-  // TODO temperature publish with timestamp
-  // TODO always feedback subscribe
 
   if (m_cg_frame_id->isFault(msg->id)) {
     RCLCPP_ERROR(this->get_logger(), "Detect fault state from cybergear");
@@ -193,44 +193,12 @@ void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
     }
     RCLCPP_ERROR_STREAM(this->get_logger(), "data: " << can_frame_data);
     rclcpp::shutdown();
-  }
-  if (!m_cg_frame_id->isFeedback(msg->id)) {
     return;
   }
+  if (m_cg_frame_id->isFeedback(msg->id)) {
+    procFeedbackPacket(*msg);
+  }
   m_recived_can_msg = true;
-  if (m_cg_frame_id->hasError(msg->id)) {
-    RCLCPP_WARN(this->get_logger(), "Detect error state from cybergear");
-  }
-  if (m_cg_frame_id->isResetMode(msg->id)) {
-    RCLCPP_DEBUG(this->get_logger(), "Reset mode now");
-  }
-  if (m_cg_frame_id->isRunningMode(msg->id)) {
-    RCLCPP_DEBUG(this->get_logger(), "Running mode now");
-  }
-  std_msgs::msg::Header header_msg;
-  header_msg.stamp = this->get_clock()->now();
-  header_msg.frame_id = m_params->joint_name;
-
-  if (m_joint_state_publisher) {
-    auto joint_state_msg = std::make_unique<sensor_msgs::msg::JointState>();
-
-    joint_state_msg->header = header_msg;
-    joint_state_msg->name.push_back(m_params->joint_name);
-    joint_state_msg->position.push_back(m_anguler_position_converter->toFloat<8>(msg->data, 0));
-    joint_state_msg->velocity.push_back(m_anguler_velocity_converter->toFloat<8>(msg->data, 2));
-    joint_state_msg->effort.push_back(m_anguler_effort_converter->toFloat<8>(msg->data, 4));
-
-    m_last_sense_anguler_position = joint_state_msg->position[0];
-
-    m_joint_state_publisher->publish(std::move(joint_state_msg));
-  }
-  if (m_joint_temperature_publisher) {
-    auto temperature_msg = std::make_unique<sensor_msgs::msg::Temperature>();
-    temperature_msg->header = header_msg;
-    temperature_msg->temperature = m_temperature_converter->toFloat<8>(msg->data, 6);
-    temperature_msg->variance = 0.0;  // unknown
-    m_joint_temperature_publisher->publish(std::move(temperature_msg));
-  }
 }
 
 void CybergearSocketCanDriverNode::subscribeJointTrajectoryCallback(
@@ -305,6 +273,45 @@ void CybergearSocketCanDriverNode::enableTorqueServiceCallback(
   }
   response->success = true;
   RCLCPP_INFO_STREAM(this->get_logger(), response->message);
+}
+
+void CybergearSocketCanDriverNode::procFeedbackPacket(const can_msgs::msg::Frame & msg)
+{
+  if (m_cg_frame_id->hasError(msg.id)) {
+    RCLCPP_WARN(this->get_logger(), "Detect error state from cybergear");
+  }
+  if (m_cg_frame_id->isResetMode(msg.id)) {
+    RCLCPP_DEBUG(this->get_logger(), "Reset mode now");
+  }
+  if (m_cg_frame_id->isRunningMode(msg.id)) {
+    RCLCPP_DEBUG(this->get_logger(), "Running mode now");
+  }
+  std_msgs::msg::Header header_msg;
+  header_msg.stamp = this->get_clock()->now();
+  header_msg.frame_id = m_params->joint_name;
+
+  if (m_joint_state_publisher) {
+    auto joint_state_msg = std::make_unique<sensor_msgs::msg::JointState>();
+
+    joint_state_msg->header = header_msg;
+    joint_state_msg->name.push_back(m_params->joint_name);
+    joint_state_msg->position.push_back(m_anguler_position_converter->toFloat<8>(msg.data, 0));
+    joint_state_msg->velocity.push_back(m_anguler_velocity_converter->toFloat<8>(msg.data, 2));
+    joint_state_msg->effort.push_back(m_anguler_effort_converter->toFloat<8>(msg.data, 4));
+
+    m_last_sense_anguler_position = joint_state_msg->position[0];
+
+    m_joint_state_publisher->publish(std::move(joint_state_msg));
+  }
+  if (m_joint_temperature_publisher) {
+    auto temperature_msg = std::make_unique<sensor_msgs::msg::Temperature>();
+
+    temperature_msg->header = header_msg;
+    temperature_msg->temperature = m_temperature_converter->toFloat<8>(msg.data, 6);
+    temperature_msg->variance = 0.0;  // unknown
+
+    m_joint_temperature_publisher->publish(std::move(temperature_msg));
+  }
 }
 
 void CybergearSocketCanDriverNode::setDefaultCanFrame(can_msgs::msg::Frame::UniquePtr & msg)

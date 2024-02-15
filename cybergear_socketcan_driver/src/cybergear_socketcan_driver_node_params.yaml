@@ -11,7 +11,7 @@ cybergear_socketcan_driver_node:
       bounds<>: [0, 255]
   send_frequency:
     type: double
-    default_value: 8.0
+    default_value: 16.0
     validation:
       gt<>: 0.0
   joint_name:
