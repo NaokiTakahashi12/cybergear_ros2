@@ -14,6 +14,11 @@ cybergear_socketcan_driver_node:
     default_value: 16.0
     validation:
       gt<>: 0.0
+  update_param_frequency:
+    type: double
+    default_value: 1.0
+    validation:
+      gt<>: 0.0
   joint_name:
     type: string
     default_value: cybergear

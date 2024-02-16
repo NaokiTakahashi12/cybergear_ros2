@@ -53,6 +53,7 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr m_joint_temperature_publisher;
 
   rclcpp::TimerBase::SharedPtr m_send_can_frame_timer;
+  rclcpp::TimerBase::SharedPtr m_update_parameter_timer;
 
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr m_enable_torque_service;
 
@@ -63,6 +64,7 @@ private:
   void subscribeJointTrajectoryCallback(
     const trajectory_msgs::msg::JointTrajectory::ConstSharedPtr &);
   void sendCanFrameTimerCallback();
+  void updateParameterTimerCallback();
   void enableTorqueServiceCallback(
     const std_srvs::srv::SetBool::Request::ConstSharedPtr & request,
     const std_srvs::srv::SetBool::Response::SharedPtr & response);
@@ -97,6 +99,7 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(const rclcpp::NodeOpt
   m_joint_state_publisher(nullptr),
   m_joint_temperature_publisher(nullptr),
   m_send_can_frame_timer(nullptr),
+  m_update_parameter_timer(nullptr),
   m_enable_torque_service(nullptr),
   m_param_listener(nullptr),
   m_params(nullptr)
@@ -156,10 +159,14 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(const rclcpp::NodeOpt
   );
 
   const unsigned int send_duration_milliseconds = 1e3 / m_params->send_frequency;
+  const unsigned int update_param_duration_milliseconds = 1e3 / m_params->update_param_frequency;
 
   m_send_can_frame_timer = this->create_wall_timer(
     std::chrono::milliseconds(send_duration_milliseconds),
     std::bind(&CybergearSocketCanDriverNode::sendCanFrameTimerCallback, this));
+  m_update_parameter_timer = this->create_wall_timer(
+    std::chrono::milliseconds(update_param_duration_milliseconds),
+    std::bind(&CybergearSocketCanDriverNode::updateParameterTimerCallback, this));
 
   m_enable_torque_service = this->create_service<std_srvs::srv::SetBool>(
     "~/enable_torque",
@@ -256,6 +263,15 @@ void CybergearSocketCanDriverNode::sendCanFrameTimerCallback()
 
   msg->id = m_cg_frame_id->getCommandId(cmd_effort);
   m_can_frame_publisher->publish(std::move(msg));
+}
+
+void CybergearSocketCanDriverNode::updateParameterTimerCallback()
+{
+  if (m_param_listener->is_old(*m_params)) {
+    m_param_listener->refresh_dynamic_parameters();
+    *m_params = m_param_listener->get_params();
+    RCLCPP_INFO(this->get_logger(), "Changed dynamic parameters");
+  }
 }
 
 // TODO wait for result
