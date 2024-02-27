@@ -43,65 +43,10 @@
 #include <cybergear_socketcan_driver_node_params.hpp>
 #include <cybergear_socketcan_driver/cybergear_socketcan_driver.hpp>
 
+#include "cybergear_socketcan_driver_node.hpp"
+
 namespace cybergear_socketcan_driver
 {
-
-class CybergearSocketCanDriverNode : public rclcpp::Node
-{
-public:
-  explicit CybergearSocketCanDriverNode(const rclcpp::NodeOptions &);
-  ~CybergearSocketCanDriverNode();
-
-private:
-  bool m_recived_can_msg;
-
-  float m_last_sense_anguler_position;
-  std::vector<double> m_dest_anguler_positions;
-
-  std::unique_ptr<CybergearFrameId> m_cg_frame_id;
-  std::unique_ptr<BoundedFloatByteConverter> m_anguler_position_converter;
-  std::unique_ptr<BoundedFloatByteConverter> m_anguler_velocity_converter;
-  std::unique_ptr<BoundedFloatByteConverter> m_anguler_effort_converter;
-  std::unique_ptr<ScaledFloatByteConverter> m_temperature_converter;
-  std::unique_ptr<BoundedFloatByteConverter> m_pid_kp_converter;
-  std::unique_ptr<BoundedFloatByteConverter> m_pid_kd_converter;
-
-  rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr m_can_frame_subscriber;
-  rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr
-    m_joint_trajectory_subscriber;
-
-  rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr m_can_frame_publisher;
-  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr m_joint_state_publisher;
-  rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr m_joint_temperature_publisher;
-
-  rclcpp::TimerBase::SharedPtr m_send_can_frame_timer;
-  rclcpp::TimerBase::SharedPtr m_update_parameter_timer;
-
-  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr m_enable_torque_service;
-
-  std::unique_ptr<cybergear_socketcan_driver_node::ParamListener> m_param_listener;
-  std::unique_ptr<cybergear_socketcan_driver_node::Params> m_params;
-
-  void subscribeCanFrameCallback(const can_msgs::msg::Frame::ConstSharedPtr &);
-  void subscribeJointTrajectoryCallback(
-    const trajectory_msgs::msg::JointTrajectory::ConstSharedPtr &);
-  void sendCanFrameTimerCallback();
-  void updateParameterTimerCallback();
-  void enableTorqueServiceCallback(
-    const std_srvs::srv::SetBool::Request::ConstSharedPtr & request,
-    const std_srvs::srv::SetBool::Response::SharedPtr & response);
-
-  void procFeedbackPacket(const can_msgs::msg::Frame &);
-
-  void setDefaultCanFrame(can_msgs::msg::Frame::UniquePtr &);
-
-  void sendEnableTorque();
-  void sendResetTorque();
-  void sendFeedbackRequst();
-
-  float getDestAngulerPosition();
-};
-
 CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(const rclcpp::NodeOptions & node_options)
 : rclcpp::Node("cybergear_socketcan_driver",
     rclcpp::NodeOptions(node_options).use_intra_process_comms(true)),
