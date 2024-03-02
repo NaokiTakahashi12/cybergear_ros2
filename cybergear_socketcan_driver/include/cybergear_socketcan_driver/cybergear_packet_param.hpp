@@ -22,9 +22,31 @@
 
 #pragma once
 
-#include "protocol_constant.hpp"
-#include "scaled_float_byte_converter.hpp"
-#include "bounded_float_byte_converter.hpp"
-#include "cybergear_frame_id.hpp"
-#include "cybergear_packet_param.hpp"
-#include "cybergear_packet.hpp"
+namespace cybergear_socketcan_driver
+{
+struct CybergearPacketParam
+{
+  int device_id, primary_id;
+  float max_position, min_position;  //!< Angular position [rad]
+  float max_velocity, min_velocity;  //!< Angular velocity [rad/s]
+  float max_effort, min_effort;  //!< Effort [N/m]
+  float max_gain_kp, min_gain_kp;
+  float max_gain_kd, min_gain_kd;
+  float temperature_scale;
+
+  CybergearPacketParam()
+  : device_id(127),
+    primary_id(0),
+    max_position(12.56637061),
+    min_position(-12.56637061),
+    max_velocity(30.0),
+    min_velocity(-30.0),
+    max_effort(12.0),
+    min_effort(-12.0),
+    max_gain_kp(500.0),
+    min_gain_kp(0.0),
+    max_gain_kd(5.0),
+    min_gain_kd(0.0),
+    temperature_scale(0.1) {}
+};
+}  // namespace cybergear_socketcan_driver
