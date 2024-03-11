@@ -23,6 +23,8 @@
 #pragma once
 
 #include <memory>
+#include <array>
+#include <algorithm>
 
 #include "cybergear_packet_param.hpp"
 #include "protocol_constant.hpp"
@@ -32,9 +34,34 @@
 
 namespace cybergear_socketcan_driver
 {
+struct MoveParam
+{
+  MoveParam()
+  : position(0.0),
+    velocity(0.0),
+    effort(0.0),
+    kp(0.0),
+    kd(0.0) {}
+  float position;
+  float velocity;
+  float effort;
+  float kp;
+  float kd;
+};
+
+struct CanFrame
+{
+  uint32_t id;
+  std::array<uint8_t, 8> data;
+};
+
+using CanFrameUniquePtr = std::unique_ptr<CanFrame>;
+
 class CybergearPacket
 {
 public:
+  using CanData = std::array<uint8_t, 8>;
+
   explicit CybergearPacket(const CybergearPacketParam & param)
   : m_frame_id(nullptr),
     m_anguler_position_converter(nullptr),
@@ -67,6 +94,52 @@ public:
   }
 
   ~CybergearPacket() {}
+
+  CanFrameUniquePtr createMoveCommand(const MoveParam & param)
+  {
+    auto can_frame = std::make_unique<CanFrame>();
+
+    const auto cmd_pos = m_anguler_position_converter->toByte(param.position);
+    const auto cmd_vel = m_anguler_velocity_converter->toByte(param.velocity);
+    const auto cmd_effort = m_anguler_effort_converter->toDoubleByte(param.effort);
+    const auto kp_gain = m_pid_kp_converter->toByte(param.kp);
+    const auto kd_gain = m_pid_kd_converter->toByte(param.kd);
+
+    std::copy(cmd_pos.cbegin(), cmd_pos.cend(), can_frame->data.begin());
+    std::copy(cmd_vel.cbegin(), cmd_vel.cend(), can_frame->data.begin() + 2);
+    std::copy(kp_gain.cbegin(), kp_gain.cend(), can_frame->data.begin() + 4);
+    std::copy(kd_gain.cbegin(), kd_gain.cend(), can_frame->data.begin() + 6);
+
+    can_frame->id = m_frame_id->getCommandId(cmd_effort);
+
+    return can_frame;
+  }
+
+  CanFrameUniquePtr createPositionCommand(const float position, const float kp, const float kd)
+  {
+    MoveParam param;
+    param.position = position;
+    param.kp = kp;
+    param.kd = kd;
+    return createMoveCommand(param);
+  }
+
+  //! @todo kp
+  CanFrameUniquePtr createVelocityCommand(const float velocity, const float kp)
+  {
+    MoveParam param;
+    param.velocity = velocity;
+    param.kp = kp;
+    return createMoveCommand(param);
+  }
+
+  CanFrameUniquePtr createEffortCommand(const float effort)
+  {
+    MoveParam param;
+    param.velocity = effort;
+    return createMoveCommand(param);
+  }
+
 
 private:
   std::unique_ptr<CybergearFrameId> m_frame_id;
