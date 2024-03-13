@@ -94,6 +94,11 @@ public:
 
   ~CybergearPacket() {}
 
+  CybergearFrameId frameId()
+  {
+    return *m_frame_id;
+  }
+
   CanFrameUniquePtr createMoveCommand(const MoveParam & param)
   {
     auto can_frame = std::make_unique<CanFrame>();
