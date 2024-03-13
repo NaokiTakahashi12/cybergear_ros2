@@ -49,10 +49,11 @@ struct MoveParam
   float kd;
 };
 
+using CanData = std::array<uint8_t, 8>;
 struct CanFrame
 {
   uint32_t id;
-  std::array<uint8_t, 8> data;
+  CanData data;
 };
 
 using CanFrameUniquePtr = std::unique_ptr<CanFrame>;
@@ -60,8 +61,6 @@ using CanFrameUniquePtr = std::unique_ptr<CanFrame>;
 class CybergearPacket
 {
 public:
-  using CanData = std::array<uint8_t, 8>;
-
   explicit CybergearPacket(const CybergearPacketParam & param)
   : m_frame_id(nullptr),
     m_anguler_position_converter(nullptr),
@@ -140,6 +139,25 @@ public:
     return createMoveCommand(param);
   }
 
+  float persePosition(const CanData & data) const
+  {
+    return m_anguler_position_converter->toFloat<8>(data, 0);
+  }
+
+  float perseVelocity(const CanData & data) const
+  {
+    return m_anguler_velocity_converter->toFloat<8>(data, 2);
+  }
+
+  float perseEffort(const CanData & data) const
+  {
+    return m_anguler_effort_converter->toFloat<8>(data, 4);
+  }
+
+  float perseTemperature(const CanData & data) const
+  {
+    return m_temperature_converter->toFloat<8>(data, 6);
+  }
 
 private:
   std::unique_ptr<CybergearFrameId> m_frame_id;
