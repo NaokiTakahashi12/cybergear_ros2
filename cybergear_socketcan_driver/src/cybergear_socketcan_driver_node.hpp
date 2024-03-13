@@ -50,13 +50,7 @@ private:
   float m_last_sense_anguler_position;
   std::vector<double> m_dest_anguler_positions;
 
-  std::unique_ptr<CybergearFrameId> m_cg_frame_id;
-  std::unique_ptr<BoundedFloatByteConverter> m_anguler_position_converter;
-  std::unique_ptr<BoundedFloatByteConverter> m_anguler_velocity_converter;
-  std::unique_ptr<BoundedFloatByteConverter> m_anguler_effort_converter;
-  std::unique_ptr<ScaledFloatByteConverter> m_temperature_converter;
-  std::unique_ptr<BoundedFloatByteConverter> m_pid_kp_converter;
-  std::unique_ptr<BoundedFloatByteConverter> m_pid_kd_converter;
+  std::unique_ptr<CybergearPacket> m_packet;
 
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr m_can_frame_subscriber;
   rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr
