@@ -62,7 +62,7 @@ public:
   }
 
   template<unsigned int Size>
-  float toFloat(const std::array<uint8_t, Size> & data, const unsigned int offset)
+  float toFloat(const std::array<uint8_t, Size> & data, const unsigned int offset) const
   {
     const uint16_t raw_data = data[0 + offset] << 8 | data[1 + offset];
     return m_float_scale * static_cast<float>(raw_data) + m_min;

@@ -26,3 +26,5 @@
 #include "scaled_float_byte_converter.hpp"
 #include "bounded_float_byte_converter.hpp"
 #include "cybergear_frame_id.hpp"
+#include "cybergear_packet_param.hpp"
+#include "cybergear_packet.hpp"

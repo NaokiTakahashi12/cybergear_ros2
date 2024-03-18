@@ -22,48 +22,31 @@
 
 #pragma once
 
-#include <array>
-
 namespace cybergear_socketcan_driver
 {
-// TODO(Naoki Takahashi) endian support
-class ScaledFloatByteConverter
+struct CybergearPacketParam
 {
-public:
-  explicit ScaledFloatByteConverter(const float scale)
-  {
-    setScale(scale);
-  }
+  int device_id, primary_id;
+  float max_position, min_position;  //!< Angular position [rad]
+  float max_velocity, min_velocity;  //!< Angular velocity [rad/s]
+  float max_effort, min_effort;  //!< Effort [N/m]
+  float max_gain_kp, min_gain_kp;
+  float max_gain_kd, min_gain_kd;
+  float temperature_scale;
 
-  ~ScaledFloatByteConverter() {}
-
-  void setScale(const float scale)
-  {
-    m_scale = scale;
-  }
-
-  uint16_t toDoubleByte(const float value)
-  {
-    return static_cast<uint16_t>(value / m_scale);
-  }
-
-  std::array<uint8_t, 2> toByte(const float value)
-  {
-    const uint16_t scaled_double_byte = toDoubleByte(value);
-    return {
-      static_cast<uint8_t>((scaled_double_byte & 0xff00) >> 8),
-      static_cast<uint8_t>(scaled_double_byte & 0x00ff)
-    };
-  }
-
-  template<unsigned int Size>
-  float toFloat(const std::array<uint8_t, Size> & data, const unsigned int offset) const
-  {
-    const uint16_t raw_data = data[0 + offset] << 8 | data[1 + offset];
-    return m_scale * static_cast<float>(raw_data);
-  }
-
-private:
-  float m_scale;
+  CybergearPacketParam()
+  : device_id(127),
+    primary_id(0),
+    max_position(12.56637061),
+    min_position(-12.56637061),
+    max_velocity(30.0),
+    min_velocity(-30.0),
+    max_effort(12.0),
+    min_effort(-12.0),
+    max_gain_kp(500.0),
+    min_gain_kp(0.0),
+    max_gain_kd(5.0),
+    min_gain_kd(0.0),
+    temperature_scale(0.1) {}
 };
 }  // namespace cybergear_socketcan_driver
