@@ -22,29 +22,34 @@
 
 #pragma once
 
+#include <stdexcept>
 #include <array>
+#include <algorithm>
 
-namespace cybergear_socketcan_driver
+namespace cybergear_driver_core
 {
 // TODO(Naoki Takahashi) endian support
-class ScaledFloatByteConverter
+class BoundedFloatByteConverter
 {
 public:
-  explicit ScaledFloatByteConverter(const float scale)
+  explicit BoundedFloatByteConverter(const float max, const float min)
   {
-    setScale(scale);
+    setRange(max, min);
   }
 
-  ~ScaledFloatByteConverter() {}
+  ~BoundedFloatByteConverter() {}
 
-  void setScale(const float scale)
+  void setRange(const float max, const float min)
   {
-    m_scale = scale;
+    m_max = max;
+    m_min = min;
+    updateRange();
   }
 
   uint16_t toDoubleByte(const float value)
   {
-    return static_cast<uint16_t>(value / m_scale);
+    const float clamped_value = std::max(m_min, std::min(m_max, value));
+    return static_cast<uint16_t>((clamped_value - m_min) * m_byte_scale);
   }
 
   std::array<uint8_t, 2> toByte(const float value)
@@ -60,10 +65,23 @@ public:
   float toFloat(const std::array<uint8_t, Size> & data, const unsigned int offset) const
   {
     const uint16_t raw_data = data[0 + offset] << 8 | data[1 + offset];
-    return m_scale * static_cast<float>(raw_data);
+    return m_float_scale * static_cast<float>(raw_data) + m_min;
   }
 
 private:
-  float m_scale;
+  float m_max, m_min;
+  float m_float_range;
+  float m_float_scale, m_byte_scale;
+
+  void updateRange()
+  {
+    m_float_range = m_max - m_min;
+    m_float_scale = m_float_range / static_cast<float>(0xffff);
+    m_byte_scale = static_cast<float>(0xffff) / m_float_range;
+
+    if (m_float_range <= 0) {
+      throw std::invalid_argument("Illigal float range: ZERO or NEGATIVE");
+    }
+  }
 };
-}  // namespace cybergear_socketcan_driver
+}  // namespace cybergear_driver_core

@@ -22,31 +22,34 @@
 
 #pragma once
 
-namespace cybergear_socketcan_driver
+namespace cybergear_driver_core
 {
-struct CybergearPacketParam
+namespace commands
 {
-  int device_id, primary_id;
-  float max_position, min_position;  //!< Angular position [rad]
-  float max_velocity, min_velocity;  //!< Angular velocity [rad/s]
-  float max_effort, min_effort;  //!< Effort [N/m]
-  float max_gain_kp, min_gain_kp;
-  float max_gain_kd, min_gain_kd;
-  float temperature_scale;
+constexpr uint8_t INFO = 0;
+constexpr uint8_t COMMAND = 1;
+constexpr uint8_t FEEDBACK = 2;
+constexpr uint8_t ENABLE_TORQUE = 3;
+constexpr uint8_t RESET_TORQUE = 4;
+constexpr uint8_t ZEROING = 5;
+constexpr uint8_t CHANGE_DEVICE_ID = 6;
+constexpr uint8_t READ_PARAMETER = 17;
+constexpr uint8_t WRITE_PARAMETER = 18;
+constexpr uint8_t FAULT_FEEDBACK = 21;
+constexpr uint8_t CHANGE_BAUDRATE = 22;
+}  // namespace commands
 
-  CybergearPacketParam()
-  : device_id(127),
-    primary_id(0),
-    max_position(12.56637061),
-    min_position(-12.56637061),
-    max_velocity(30.0),
-    min_velocity(-30.0),
-    max_effort(12.0),
-    min_effort(-12.0),
-    max_gain_kp(500.0),
-    min_gain_kp(0.0),
-    max_gain_kd(5.0),
-    min_gain_kd(0.0),
-    temperature_scale(0.1) {}
-};
-}  // namespace cybergear_socketcan_driver
+namespace feedback_mode_state
+{
+constexpr uint8_t RESET = 0;
+constexpr uint8_t CALI = 1;
+constexpr uint8_t RUN = 2;
+}  // namespace feedback_mode_state
+
+namespace status_offset
+{
+constexpr uint8_t DEVICE_ID = 0;
+constexpr uint8_t FAULT = 8;
+constexpr uint8_t MODE = 2;
+}  // namespace status_offset
+}  // namespace cybergear_driver_core

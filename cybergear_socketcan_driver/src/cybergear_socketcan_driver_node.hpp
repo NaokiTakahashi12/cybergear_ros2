@@ -33,7 +33,7 @@
 #include <can_msgs/msg/frame.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <cybergear_socketcan_driver_node_params.hpp>
-#include <cybergear_socketcan_driver/cybergear_socketcan_driver.hpp>
+#include <cybergear_driver_core/cybergear_driver_core.hpp>
 
 namespace cybergear_socketcan_driver
 {
@@ -50,7 +50,7 @@ private:
   float m_last_sense_anguler_position;
   std::vector<double> m_dest_anguler_positions;
 
-  std::unique_ptr<CybergearPacket> m_packet;
+  std::unique_ptr<cybergear_driver_core::CybergearPacket> m_packet;
 
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr m_can_frame_subscriber;
   rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr

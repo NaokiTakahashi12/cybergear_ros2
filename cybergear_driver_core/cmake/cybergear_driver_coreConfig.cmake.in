@@ -1,0 +1,15 @@
+# - Config file for the cybergear_driver_core package
+# It defines the following variables
+#  cybergear_driver_core_INCLUDE_DIRS - include directories for FooBar
+#  cybergear_driver_core_LIBRARIES    - libraries to link against
+#  cybergear_driver_core_EXECUTABLE   - the bar executable
+
+# set(cybergear_driver_core_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
+
+# Our library dependencies (contains definitions for IMPORTED targets)
+# include("${cybergear_driver_core_DIR}/export_cybergear_driver_core.cmake")
+
+# These are IMPORTED targets created by cybergear_driver_coreTargets.cmake
+
+include(${CMAKE_CURRENT_LIST_DIR}/cybergear_driver_coreTargets.cmake)
+

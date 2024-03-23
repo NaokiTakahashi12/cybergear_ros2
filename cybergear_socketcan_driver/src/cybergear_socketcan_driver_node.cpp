@@ -41,7 +41,7 @@
 #include <can_msgs/msg/frame.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <cybergear_socketcan_driver_node_params.hpp>
-#include <cybergear_socketcan_driver/cybergear_socketcan_driver.hpp>
+#include <cybergear_driver_core/cybergear_driver_core.hpp>
 
 #include "cybergear_socketcan_driver_node.hpp"
 
@@ -73,7 +73,7 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(const rclcpp::NodeOpt
   m_params = std::make_unique<cybergear_socketcan_driver_node::Params>(
     m_param_listener->get_params());
 
-  CybergearPacketParam packet_param;
+  cybergear_driver_core::CybergearPacketParam packet_param;
   packet_param.device_id = m_params->device_id;
   packet_param.primary_id = m_params->primary_id;
   packet_param.max_position = m_params->anguler_position.max;
@@ -87,7 +87,7 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(const rclcpp::NodeOpt
   packet_param.max_gain_kd = m_params->pid_gain_range.kd.max;
   packet_param.min_gain_kd = m_params->pid_gain_range.kd.min;
   packet_param.temperature_scale = m_params->temperature.scale;
-  m_packet = std::make_unique<CybergearPacket>(packet_param);
+  m_packet = std::make_unique<cybergear_driver_core::CybergearPacket>(packet_param);
 
   m_can_frame_publisher = this->create_publisher<can_msgs::msg::Frame>(
     "to_can_bus", 3);
