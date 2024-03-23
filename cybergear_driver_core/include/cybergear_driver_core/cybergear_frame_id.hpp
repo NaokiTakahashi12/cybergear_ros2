@@ -26,7 +26,7 @@
 
 #include "protocol_constant.hpp"
 
-namespace cybergear_socketcan_driver
+namespace cybergear_driver_core
 {
 class CybergearFrameId
 {
@@ -122,4 +122,4 @@ private:
     return static_cast<uint32_t>(cmd_id << 24 | opt << 8 | dev_id);
   }
 };
-}  // namespace cybergear_socketcan_driver
+}  // namespace cybergear_driver_core

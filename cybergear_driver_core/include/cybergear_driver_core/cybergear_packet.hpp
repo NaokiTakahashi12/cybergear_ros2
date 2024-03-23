@@ -32,7 +32,7 @@
 #include "scaled_float_byte_converter.hpp"
 #include "bounded_float_byte_converter.hpp"
 
-namespace cybergear_socketcan_driver
+namespace cybergear_driver_core
 {
 struct MoveParam
 {
@@ -173,4 +173,4 @@ private:
   std::unique_ptr<BoundedFloatByteConverter> m_pid_kd_converter;
   std::unique_ptr<ScaledFloatByteConverter> m_temperature_converter;
 };
-}  // namespace cybergear_socketcan_driver
+}  // namespace cybergear_driver_core
