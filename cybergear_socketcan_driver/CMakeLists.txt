@@ -12,6 +12,7 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_auto REQUIRED)
+find_package(cybergear_driver_core REQUIRED)
 
 ament_auto_find_build_dependencies()
 
@@ -28,6 +29,7 @@ target_compile_features(${PROJECT_NAME}_components
 )
 target_link_libraries(${PROJECT_NAME}_components
   cybergear_socketcan_driver_node_params
+  cybergear_driver_core::cybergear_driver_core
 )
 rclcpp_components_register_node(${PROJECT_NAME}_components
   PLUGIN "cybergear_socketcan_driver::CybergearSocketCanDriverNode"
