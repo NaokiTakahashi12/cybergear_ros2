@@ -20,6 +20,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "cybergear_socketcan_driver_node.hpp"
+
 #include <cmath>
 #include <memory>
 #include <string>
@@ -42,8 +44,6 @@
 #include <std_srvs/srv/set_bool.hpp>
 #include <cybergear_socketcan_driver_node_params.hpp>
 #include <cybergear_driver_core/cybergear_driver_core.hpp>
-
-#include "cybergear_socketcan_driver_node.hpp"
 
 namespace cybergear_socketcan_driver
 {
@@ -214,6 +214,8 @@ void CybergearSocketCanDriverNode::sendCanFrameTimerCallback()
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg->data.begin());
   msg->id = can_frame->id;
   m_can_frame_publisher->publish(std::move(msg));
+
+  m_recived_can_msg = false;
 }
 
 void CybergearSocketCanDriverNode::updateParameterTimerCallback()
