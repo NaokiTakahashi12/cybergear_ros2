@@ -11,10 +11,12 @@
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>trajectory_msgs</depend>
+  <depend>diagnostic_msgs</depend>
   <depend>can_msgs</depend>
   <depend>std_srvs</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
+  <depend>diagnostic_updater</depend>
   <build_depend>generate_parameter_library</build_depend>
   <build_depend>cybergear_driver_core</build_depend>
   <exec_depend>ros2_socketcan</exec_depend>
