@@ -268,6 +268,7 @@ void CybergearSocketCanDriverNode::enableTorqueServiceCallback(
   RCLCPP_INFO_STREAM(this->get_logger(), response->message);
 }
 
+// TODO(Naoki Takahashi): more information
 void CybergearSocketCanDriverNode::canFrameDiagnosricsCallback(
   diagnostic_updater::DiagnosticStatusWrapper & diag_status)
 {
