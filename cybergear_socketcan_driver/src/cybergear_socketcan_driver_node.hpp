@@ -23,9 +23,11 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
+#include <diagnostic_updater/diagnostic_updater.hpp>
 #include <std_msgs/msg/header.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <sensor_msgs/msg/temperature.hpp>
@@ -41,6 +43,7 @@ namespace cybergear_socketcan_driver
 class CybergearSocketCanDriverNode : public rclcpp::Node
 {
 public:
+  explicit CybergearSocketCanDriverNode(const std::string & node_name, const rclcpp::NodeOptions &);
   explicit CybergearSocketCanDriverNode(const rclcpp::NodeOptions &);
   ~CybergearSocketCanDriverNode();
 
@@ -51,6 +54,8 @@ private:
   std::vector<double> m_dest_anguler_positions;
 
   std::unique_ptr<cybergear_driver_core::CybergearPacket> m_packet;
+
+  can_msgs::msg::Frame::ConstSharedPtr m_last_subscribe_can_frame;
 
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr m_can_frame_subscriber;
   rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr
@@ -65,6 +70,8 @@ private:
 
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr m_enable_torque_service;
 
+  std::unique_ptr<diagnostic_updater::Updater> m_diagnostic_updater;
+
   std::unique_ptr<cybergear_socketcan_driver_node::ParamListener> m_param_listener;
   std::unique_ptr<cybergear_socketcan_driver_node::Params> m_params;
 
@@ -76,6 +83,8 @@ private:
   void enableTorqueServiceCallback(
     const std_srvs::srv::SetBool::Request::ConstSharedPtr & request,
     const std_srvs::srv::SetBool::Response::SharedPtr & response);
+
+  void canFrameDiagnosricsCallback(diagnostic_updater::DiagnosticStatusWrapper &);
 
   void procFeedbackPacket(const can_msgs::msg::Frame &);
 
