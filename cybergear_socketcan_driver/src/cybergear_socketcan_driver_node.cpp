@@ -159,9 +159,15 @@ cybergear_socketcan_driver_node::Params & CybergearSocketCanDriverNode::params()
 }
 
 void CybergearSocketCanDriverNode::procFeedbackPacketCallback(const can_msgs::msg::Frame &) {}
-void CybergearSocketCanDriverNode::procFeedbackJointStateCallback(const sensor_msgs::msg::JointState &) {}
-void CybergearSocketCanDriverNode::procFeedbackTemperatureCallabck(const sensor_msgs::msg::Temperature &) {}
-void CybergearSocketCanDriverNode::sendCanFrameCallback(can_msgs::msg::Frame &) {}
+void CybergearSocketCanDriverNode::procFeedbackJointStateCallback(
+  const sensor_msgs::msg::JointState &) {}
+void CybergearSocketCanDriverNode::procFeedbackTemperatureCallabck(
+  const sensor_msgs::msg::Temperature &) {}
+
+void CybergearSocketCanDriverNode::sendCanFrameCallback(can_msgs::msg::Frame & msg)
+{
+  msg.id = m_packet->frameId().getFeedbackId();
+}
 
 void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
   const can_msgs::msg::Frame::ConstSharedPtr & msg)

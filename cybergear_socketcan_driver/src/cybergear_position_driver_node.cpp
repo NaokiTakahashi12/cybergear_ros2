@@ -39,8 +39,8 @@ public:
   virtual ~CybergearPositionDriverNode();
 
 protected:
-  void procFeedbackJointStateCallback(const sensor_msgs::msg::JointState &) override final;
-  void sendCanFrameCallback(can_msgs::msg::Frame &) override final;
+  void procFeedbackJointStateCallback(const sensor_msgs::msg::JointState &) final;
+  void sendCanFrameCallback(can_msgs::msg::Frame &) final;
 
 private:
   float m_last_sense_anguler_position;
@@ -75,7 +75,8 @@ CybergearPositionDriverNode::CybergearPositionDriverNode(const rclcpp::NodeOptio
 
 CybergearPositionDriverNode::~CybergearPositionDriverNode() {}
 
-void CybergearPositionDriverNode::procFeedbackJointStateCallback(const sensor_msgs::msg::JointState & msg)
+void CybergearPositionDriverNode::procFeedbackJointStateCallback(
+  const sensor_msgs::msg::JointState & msg)
 {
   if (msg.position.size() < 1) {
     return;
