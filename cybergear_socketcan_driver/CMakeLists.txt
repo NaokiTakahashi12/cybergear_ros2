@@ -22,6 +22,7 @@ generate_parameter_library(cybergear_socketcan_driver_node_params
 
 ament_auto_add_library(${PROJECT_NAME}_components SHARED
   src/cybergear_socketcan_driver_node.cpp
+  src/cybergear_position_driver_node.cpp
 )
 target_compile_features(${PROJECT_NAME}_components
   PUBLIC
@@ -34,6 +35,10 @@ target_link_libraries(${PROJECT_NAME}_components
 rclcpp_components_register_node(${PROJECT_NAME}_components
   PLUGIN "cybergear_socketcan_driver::CybergearSocketCanDriverNode"
   EXECUTABLE cybergear_socketcan_driver_node
+)
+rclcpp_components_register_node(${PROJECT_NAME}_components
+  PLUGIN "cybergear_socketcan_driver::CybergearPositionDriverNode"
+  EXECUTABLE cybergear_position_driver_node
 )
 
 install(
