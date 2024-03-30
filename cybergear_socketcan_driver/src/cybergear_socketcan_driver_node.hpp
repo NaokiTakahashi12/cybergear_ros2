@@ -24,14 +24,12 @@
 
 #include <memory>
 #include <string>
-#include <vector>
 
 #include <rclcpp/rclcpp.hpp>
 #include <diagnostic_updater/diagnostic_updater.hpp>
 #include <std_msgs/msg/header.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <sensor_msgs/msg/temperature.hpp>
-#include <trajectory_msgs/msg/joint_trajectory.hpp>
 #include <can_msgs/msg/frame.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <cybergear_socketcan_driver_node_params.hpp>
@@ -45,21 +43,25 @@ class CybergearSocketCanDriverNode : public rclcpp::Node
 public:
   explicit CybergearSocketCanDriverNode(const std::string & node_name, const rclcpp::NodeOptions &);
   explicit CybergearSocketCanDriverNode(const rclcpp::NodeOptions &);
-  ~CybergearSocketCanDriverNode();
+  virtual ~CybergearSocketCanDriverNode();
+
+protected:
+  cybergear_driver_core::CybergearPacket & packet();
+  cybergear_socketcan_driver_node::Params & params();
+
+  virtual void procFeedbackPacketCallback(const can_msgs::msg::Frame &);
+  virtual void procFeedbackJointStateCallback(const sensor_msgs::msg::JointState &);
+  virtual void procFeedbackTemperatureCallabck(const sensor_msgs::msg::Temperature &);
+  virtual void sendCanFrameCallback(can_msgs::msg::Frame &);
 
 private:
   bool m_recived_can_msg;
-
-  float m_last_sense_anguler_position;
-  std::vector<double> m_dest_anguler_positions;
 
   std::unique_ptr<cybergear_driver_core::CybergearPacket> m_packet;
 
   can_msgs::msg::Frame::ConstSharedPtr m_last_subscribe_can_frame;
 
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr m_can_frame_subscriber;
-  rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr
-    m_joint_trajectory_subscriber;
 
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr m_can_frame_publisher;
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr m_joint_state_publisher;
@@ -76,8 +78,6 @@ private:
   std::unique_ptr<cybergear_socketcan_driver_node::Params> m_params;
 
   void subscribeCanFrameCallback(const can_msgs::msg::Frame::ConstSharedPtr &);
-  void subscribeJointTrajectoryCallback(
-    const trajectory_msgs::msg::JointTrajectory::ConstSharedPtr &);
   void sendCanFrameTimerCallback();
   void updateParameterTimerCallback();
   void enableTorqueServiceCallback(
@@ -93,7 +93,5 @@ private:
   void sendEnableTorque();
   void sendResetTorque();
   void sendFeedbackRequst();
-
-  float getDestAngulerPosition();
 };
 }  // namespace cybergear_socketcan_driver
