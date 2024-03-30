@@ -82,7 +82,6 @@ void CybergearPositionDriverNode::procFeedbackJointStateCallback(
     return;
   }
   m_last_sense_anguler_position = msg.position[0];
-  m_last_sense_anguler_position = 0.0;
 }
 
 void CybergearPositionDriverNode::sendCanFrameCallback(can_msgs::msg::Frame & msg)
