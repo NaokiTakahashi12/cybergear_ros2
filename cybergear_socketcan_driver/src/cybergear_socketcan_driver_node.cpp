@@ -302,12 +302,6 @@ void CybergearSocketCanDriverNode::procFeedbackPacket(const can_msgs::msg::Frame
   if (m_packet->frameId().hasError(msg.id)) {
     RCLCPP_WARN(this->get_logger(), "Detect error state from cybergear");
   }
-  if (m_packet->frameId().isResetMode(msg.id)) {
-    RCLCPP_DEBUG(this->get_logger(), "Reset mode now");
-  }
-  if (m_packet->frameId().isRunningMode(msg.id)) {
-    RCLCPP_DEBUG(this->get_logger(), "Running mode now");
-  }
   std_msgs::msg::Header header_msg;
   header_msg.stamp = this->get_clock()->now();
   header_msg.frame_id = m_params->joint_name;
