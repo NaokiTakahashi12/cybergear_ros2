@@ -53,6 +53,7 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
   m_packet(nullptr),
   m_last_subscribe_can_frame(nullptr),
   m_can_frame_subscriber(nullptr),
+  m_joint_trajectory_subscriber(nullptr),
   m_can_frame_publisher(nullptr),
   m_joint_state_publisher(nullptr),
   m_joint_temperature_publisher(nullptr),
@@ -118,6 +119,15 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
       std::placeholders::_1
     )
   );
+  m_joint_trajectory_subscriber = this->create_subscription<trajectory_msgs::msg::JointTrajectory>(
+    "joint_trajectory",
+    3,
+    std::bind(
+      &CybergearSocketCanDriverNode::subscribeJointTrajectoryCallback,
+      this,
+      std::placeholders::_1
+    )
+  );
 
   const unsigned int send_duration_milliseconds = 1e3 / m_params->send_frequency;
   const unsigned int update_param_duration_milliseconds = 1e3 / m_params->update_param_frequency;
@@ -169,6 +179,9 @@ void CybergearSocketCanDriverNode::sendCanFrameCallback(can_msgs::msg::Frame & m
   msg.id = m_packet->frameId().getFeedbackId();
 }
 
+void CybergearSocketCanDriverNode::subscribeJointTrajectoryPointCallback(
+  const trajectory_msgs::msg::JointTrajectoryPoint &) {}
+
 void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
   const can_msgs::msg::Frame::ConstSharedPtr & msg)
 {
@@ -193,6 +206,27 @@ void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
     procFeedbackPacket(*msg);
   }
   m_recived_can_msg = true;
+}
+
+void CybergearSocketCanDriverNode::subscribeJointTrajectoryCallback(
+  const trajectory_msgs::msg::JointTrajectory::ConstSharedPtr & msg)
+{
+  bool has_this_joint_cmd = false;
+  int cmd_index = 0;
+
+  for (const auto & joint_name : msg->joint_names) {
+    if (joint_name == this->params().joint_name) {
+      has_this_joint_cmd = true;
+      break;
+    }
+    cmd_index++;
+  }
+  if (!has_this_joint_cmd) {
+    return;
+  } else if (msg->points.size() <= static_cast<unsigned int>(cmd_index)) {
+    return;
+  }
+  subscribeJointTrajectoryPointCallback(msg->points[cmd_index]);
 }
 
 void CybergearSocketCanDriverNode::sendCanFrameTimerCallback()

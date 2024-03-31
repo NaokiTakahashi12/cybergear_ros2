@@ -27,7 +27,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
-#include <trajectory_msgs/msg/joint_trajectory.hpp>
+#include <trajectory_msgs/msg/joint_trajectory_point.hpp>
 #include <can_msgs/msg/frame.hpp>
 
 namespace cybergear_socketcan_driver
@@ -41,17 +41,13 @@ public:
 protected:
   void procFeedbackJointStateCallback(const sensor_msgs::msg::JointState &) final;
   void sendCanFrameCallback(can_msgs::msg::Frame &) final;
+  void subscribeJointTrajectoryPointCallback(
+    const trajectory_msgs::msg::JointTrajectoryPoint &) final;
 
 private:
   float m_last_sense_anguler_position;
 
   std::vector<float> m_dest_anguler_positions;
-
-  rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr
-    m_joint_trajectory_subscriber;
-
-  void subscribeJointTrajectoryCallback(
-    const trajectory_msgs::msg::JointTrajectory::ConstSharedPtr &);
 
   float getDestAngulerPosition();
 };
@@ -59,19 +55,7 @@ private:
 CybergearPositionDriverNode::CybergearPositionDriverNode(const rclcpp::NodeOptions & node_options)
 : CybergearSocketCanDriverNode("cybergear_position_driver", node_options),
   m_last_sense_anguler_position(0),
-  m_dest_anguler_positions(),
-  m_joint_trajectory_subscriber(nullptr)
-{
-  m_joint_trajectory_subscriber = this->create_subscription<trajectory_msgs::msg::JointTrajectory>(
-    "joint_trajectory",
-    3,
-    std::bind(
-      &CybergearPositionDriverNode::subscribeJointTrajectoryCallback,
-      this,
-      std::placeholders::_1
-    )
-  );
-}
+  m_dest_anguler_positions() {}
 
 CybergearPositionDriverNode::~CybergearPositionDriverNode() {}
 
@@ -95,31 +79,17 @@ void CybergearPositionDriverNode::sendCanFrameCallback(can_msgs::msg::Frame & ms
   msg.id = can_frame->id;
 }
 
-void CybergearPositionDriverNode::subscribeJointTrajectoryCallback(
-  const trajectory_msgs::msg::JointTrajectory::ConstSharedPtr & msg)
+void CybergearPositionDriverNode::subscribeJointTrajectoryPointCallback(
+  const trajectory_msgs::msg::JointTrajectoryPoint & msg)
 {
-  bool has_this_joint_cmd = false;
-  int cmd_index = 0;
-
-  for (const auto & joint_name : msg->joint_names) {
-    if (joint_name == this->params().joint_name) {
-      has_this_joint_cmd = true;
-      break;
-    }
-    cmd_index++;
-  }
-  if (!has_this_joint_cmd) {
-    return;
-  } else if (msg->points.size() <= static_cast<unsigned int>(cmd_index)) {
-    return;
-  } else if (msg->points[cmd_index].positions.size() < 1) {
+  if (msg.positions.size() < 1) {
     return;
   }
-  const int dest_position_count = msg->points[cmd_index].positions.size();
+  const int dest_position_count = msg.positions.size();
   m_dest_anguler_positions.resize(dest_position_count);
 
   for (int i = 0; i < dest_position_count; ++i) {
-    m_dest_anguler_positions[i] = static_cast<float>(msg->points[cmd_index].positions[i]);
+    m_dest_anguler_positions[i] = static_cast<float>(msg.positions[i]);
   }
 }
 
