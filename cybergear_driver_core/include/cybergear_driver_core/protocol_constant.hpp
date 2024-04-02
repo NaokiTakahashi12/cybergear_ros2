@@ -52,4 +52,32 @@ constexpr uint8_t DEVICE_ID = 0;
 constexpr uint8_t FAULT = 8;
 constexpr uint8_t MODE = 2;
 }  // namespace status_offset
+namespace ram_parameters
+{
+constexpr uint16_t RUN_MODE = 0x7005;
+constexpr uint16_t IQ_REF = 0x7006;
+constexpr uint16_t SPEED_REF = 0x700a;
+constexpr uint16_t LIMIT_TORQUE = 0x700b;
+constexpr uint16_t CURRENT_KP = 0x7010;
+constexpr uint16_t CURRENT_KI = 0x7011;
+constexpr uint16_t CURRENT_FILTER_GAIN = 0x7014;
+constexpr uint16_t DEST_POSITION_REF = 0x70116;
+constexpr uint16_t LIMIT_SPEED = 0x70117;
+constexpr uint16_t LIMIT_CURRENT = 0x70118;
+constexpr uint16_t MECH_POSISION = 0x70119;
+constexpr uint16_t IQF = 0x7011a;
+constexpr uint16_t MECH_VELOCITY = 0x7011b;
+constexpr uint16_t VBUS = 0x7011c;
+constexpr uint16_t ROTATION_COUNT = 0x7011d;
+constexpr uint16_t POSITION_KP = 0x7011e;
+constexpr uint16_t SPEED_KP = 0x7011f;
+constexpr uint16_t SPEED_KI = 0x70120;
+}  // namespace ram_parameters
+namespace run_modes
+{
+constexpr uint8_t OPERATION = 0;
+constexpr uint8_t POSITION = 1;
+constexpr uint8_t SPEED = 2;
+constexpr uint8_t CURRENT = 3;
+}  // namespace run_modes
 }  // namespace cybergear_driver_core
