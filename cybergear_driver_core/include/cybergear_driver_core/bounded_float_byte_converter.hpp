@@ -46,18 +46,35 @@ public:
     updateRange();
   }
 
+  float toClampedFloat(const float value)
+  {
+    return std::max(m_min, std::min(m_max, value));
+  }
+
   uint16_t toDoubleByte(const float value)
   {
-    const float clamped_value = std::max(m_min, std::min(m_max, value));
+    const float clamped_value = toClampedFloat(value);
     return static_cast<uint16_t>((clamped_value - m_min) * m_byte_scale);
   }
 
-  std::array<uint8_t, 2> toByte(const float value)
+  std::array<uint8_t, 2> toTwoBytes(const float value)
   {
     const uint16_t scaled_double_byte = toDoubleByte(value);
     return {
       static_cast<uint8_t>((scaled_double_byte & 0xff00) >> 8),
       static_cast<uint8_t>(scaled_double_byte & 0x00ff)
+    };
+  }
+
+  std::array<uint8_t, 4> toFourBytes(const float value)
+  {
+    const float clamped_float = toClampedFloat(value);
+    const uint8_t * raw_bytes = reinterpret_cast<const uint8_t *>(&clamped_float);
+    return {
+      raw_bytes[0],
+      raw_bytes[1],
+      raw_bytes[2],
+      raw_bytes[3]
     };
   }
 

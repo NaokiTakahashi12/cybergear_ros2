@@ -47,7 +47,7 @@ public:
     return static_cast<uint16_t>(value / m_scale);
   }
 
-  std::array<uint8_t, 2> toByte(const float value)
+  std::array<uint8_t, 2> toTwoBytes(const float value)
   {
     const uint16_t scaled_double_byte = toDoubleByte(value);
     return {
