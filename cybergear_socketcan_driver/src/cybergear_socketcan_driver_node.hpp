@@ -56,6 +56,7 @@ protected:
   virtual void procFeedbackTemperatureCallabck(const sensor_msgs::msg::Temperature &);
 
   virtual void sendCanFrameCallback(can_msgs::msg::Frame &);
+  virtual void sendChangeRunModeCallback(can_msgs::msg::Frame &);
 
   virtual void subscribeJointTrajectoryPointCallback(
     const trajectory_msgs::msg::JointTrajectoryPoint &);
@@ -100,6 +101,7 @@ private:
 
   void setDefaultCanFrame(can_msgs::msg::Frame::UniquePtr &);
 
+  void sendChangeRunMode();
   void sendEnableTorque();
   void sendResetTorque();
   void sendFeedbackRequst();

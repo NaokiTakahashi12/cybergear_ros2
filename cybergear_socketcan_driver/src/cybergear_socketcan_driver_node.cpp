@@ -179,9 +179,17 @@ void CybergearSocketCanDriverNode::sendCanFrameCallback(can_msgs::msg::Frame & m
   msg.id = m_packet->frameId().getFeedbackId();
 }
 
+void CybergearSocketCanDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame & msg)
+{
+  const auto can_frame = m_packet->createChangeToOperationModeCommand();
+  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
+  msg.id = can_frame->id;
+}
+
 void CybergearSocketCanDriverNode::subscribeJointTrajectoryPointCallback(
   const trajectory_msgs::msg::JointTrajectoryPoint &) {}
 
+// TODO(Naoki Takahashi) perse read ram parameter
 void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
   const can_msgs::msg::Frame::ConstSharedPtr & msg)
 {
@@ -265,6 +273,9 @@ void CybergearSocketCanDriverNode::enableTorqueServiceCallback(
   const std_srvs::srv::SetBool::Response::SharedPtr & response)
 {
   RCLCPP_INFO(this->get_logger(), "Calling enableTorqueServiceCallback");
+
+  sendChangeRunMode();
+
   if (request->data) {
     sendEnableTorque();
     response->message = "Sent enable torque message";
@@ -353,6 +364,17 @@ void CybergearSocketCanDriverNode::setDefaultCanFrame(can_msgs::msg::Frame::Uniq
   msg->is_extended = true;
   msg->is_error = false;
   msg->dlc = 8;
+}
+
+void CybergearSocketCanDriverNode::sendChangeRunMode()
+{
+  auto msg = std::make_unique<can_msgs::msg::Frame>();
+  setDefaultCanFrame(msg);
+  sendChangeRunModeCallback(*msg);
+  if (msg->id == 0) {
+    return;
+  }
+  m_can_frame_publisher->publish(std::move(msg));
 }
 
 void CybergearSocketCanDriverNode::sendEnableTorque()

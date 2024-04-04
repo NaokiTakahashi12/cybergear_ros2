@@ -41,6 +41,7 @@ public:
 protected:
   void procFeedbackJointStateCallback(const sensor_msgs::msg::JointState &) final;
   void sendCanFrameCallback(can_msgs::msg::Frame &) final;
+  void sendChangeRunModeCallback(can_msgs::msg::Frame &) final;
   void subscribeJointTrajectoryPointCallback(
     const trajectory_msgs::msg::JointTrajectoryPoint &) final;
 
@@ -70,11 +71,14 @@ void CybergearPositionDriverNode::procFeedbackJointStateCallback(
 
 void CybergearPositionDriverNode::sendCanFrameCallback(can_msgs::msg::Frame & msg)
 {
-  const auto can_frame = this->packet().createPositionCommand(
-    getDestAngulerPosition(),
-    this->params().pid_gain.kp,
-    this->params().pid_gain.kd
-  );
+  const auto can_frame = this->packet().createPositionCommand(getDestAngulerPosition());
+  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
+  msg.id = can_frame->id;
+}
+
+void CybergearPositionDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame & msg)
+{
+  const auto can_frame = this->packet().createChangeToPositionModeCommand();
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
   msg.id = can_frame->id;
 }
