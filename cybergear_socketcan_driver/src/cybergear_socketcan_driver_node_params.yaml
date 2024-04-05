@@ -97,3 +97,6 @@ cybergear_socketcan_driver_node:
     kd:
       type: double
       default_value: 0.0475
+  torque_constant:
+    type: double
+    default_value: 0.87

@@ -68,6 +68,7 @@ public:
     m_anguler_effort_converter(nullptr),
     m_pid_kp_converter(nullptr),
     m_pid_kd_converter(nullptr),
+    m_motor_current_converter(nullptr),
     m_temperature_converter(nullptr)
   {
     m_frame_id = std::make_unique<CybergearFrameId>(
@@ -88,6 +89,9 @@ public:
     m_pid_kd_converter = std::make_unique<BoundedFloatByteConverter>(
       param.max_gain_kd,
       param.min_gain_kd);
+    m_motor_current_converter = std::make_unique<BoundedFloatByteConverter>(
+      param.max_current,
+      param.min_current);
     m_temperature_converter = std::make_unique<ScaledFloatByteConverter>(
       param.temperature_scale);
   }
@@ -168,11 +172,10 @@ public:
     return createWriteParameter(ram_parameters::SPEED_REF, param);
   }
 
-  CanFrameUniquePtr createEffortCommand(const float effort)
+  CanFrameUniquePtr createCurrentCommand(const float current)
   {
-    MoveParam param;
-    param.velocity = effort;
-    return createMoveCommand(param);
+    const auto param = m_motor_current_converter->toFourBytes(current);
+    return createWriteParameter(ram_parameters::IQ_REF, param);
   }
 
   CanFrameUniquePtr createChangeToOperationModeCommand()
@@ -222,6 +225,7 @@ private:
   std::unique_ptr<BoundedFloatByteConverter> m_anguler_effort_converter;
   std::unique_ptr<BoundedFloatByteConverter> m_pid_kp_converter;
   std::unique_ptr<BoundedFloatByteConverter> m_pid_kd_converter;
+  std::unique_ptr<BoundedFloatByteConverter> m_motor_current_converter;
   std::unique_ptr<ScaledFloatByteConverter> m_temperature_converter;
 };
 }  // namespace cybergear_driver_core
