@@ -21,6 +21,7 @@ generate_parameter_library(cybergear_socketcan_driver_node_params
 )
 
 ament_auto_add_library(${PROJECT_NAME}_components SHARED
+  src/single_joint_trajectory_points.cpp
   src/cybergear_socketcan_driver_node.cpp
   src/cybergear_position_driver_node.cpp
   src/cybergear_velocity_driver_node.cpp
