@@ -39,7 +39,7 @@ protected:
   void sendCanFrameCallback(can_msgs::msg::Frame &) final;
   void sendChangeRunModeCallback(can_msgs::msg::Frame &) final;
   void subscribeJointTrajectoryPointCallback(
-    const trajectory_msgs::msg::JointTrajectoryPoint &) final;
+    const SingleJointTrajectoryPoints::SharedPtr &) final;
 
 private:
   std::vector<float> m_dest_anguler_velocities;
@@ -68,16 +68,19 @@ void CybergearVeclocityDriverNode::sendChangeRunModeCallback(can_msgs::msg::Fram
 }
 
 void CybergearVeclocityDriverNode::subscribeJointTrajectoryPointCallback(
-  const trajectory_msgs::msg::JointTrajectoryPoint & msg)
+  const SingleJointTrajectoryPoints::SharedPtr & joint_trajectory)
 {
-  if (msg.velocities.size() < 1) {
+  if (!joint_trajectory) {
+    return;
+  } else if (joint_trajectory->points().size() < 1) {
     return;
   }
-  const int dest_velocity_count = msg.velocities.size();
-  m_dest_anguler_velocities.resize(dest_velocity_count);
+  m_dest_anguler_velocities.resize(joint_trajectory->points().size());
+  int point_index = 0;
 
-  for (int i = 0; i < dest_velocity_count; ++i) {
-    m_dest_anguler_velocities[i] = static_cast<float>(msg.velocities[i]);
+  for (const auto & point : joint_trajectory->points()) {
+    m_dest_anguler_velocities[point_index] = point.velocity;
+    point_index++;
   }
 }
 

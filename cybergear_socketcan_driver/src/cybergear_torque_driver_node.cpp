@@ -39,7 +39,7 @@ protected:
   void sendCanFrameCallback(can_msgs::msg::Frame &) final;
   void sendChangeRunModeCallback(can_msgs::msg::Frame &) final;
   void subscribeJointTrajectoryPointCallback(
-    const trajectory_msgs::msg::JointTrajectoryPoint &) final;
+    const SingleJointTrajectoryPoints::SharedPtr &) final;
 
 private:
   float getDestTorque();
@@ -69,16 +69,19 @@ void CybergearTorqueDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame &
 }
 
 void CybergearTorqueDriverNode::subscribeJointTrajectoryPointCallback(
-  const trajectory_msgs::msg::JointTrajectoryPoint & msg)
+  const SingleJointTrajectoryPoints::SharedPtr & joint_trajectory)
 {
-  if (msg.effort.size() < 1) {
+  if (!joint_trajectory) {
+    return;
+  } else if (joint_trajectory->points().size() < 1) {
     return;
   }
-  const int dest_effort_count = msg.effort.size();
-  m_dest_effort.resize(dest_effort_count);
+  m_dest_effort.resize(joint_trajectory->points().size());
+  int point_index = 0;
 
-  for (int i = 0; i < dest_effort_count; ++i) {
-    m_dest_effort[i] = static_cast<float>(msg.effort[i]);
+  for (const auto & point : joint_trajectory->points()) {
+    m_dest_effort[point_index] = point.effort;
+    point_index++;
   }
 }
 

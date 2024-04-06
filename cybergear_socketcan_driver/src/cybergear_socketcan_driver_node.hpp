@@ -36,6 +36,7 @@
 #include <std_srvs/srv/set_bool.hpp>
 #include <cybergear_socketcan_driver_node_params.hpp>
 #include <cybergear_driver_core/cybergear_driver_core.hpp>
+#include <cybergear_socketcan_driver/single_joint_trajectory_points.hpp>
 
 namespace cybergear_socketcan_driver
 {
@@ -59,12 +60,13 @@ protected:
   virtual void sendChangeRunModeCallback(can_msgs::msg::Frame &);
 
   virtual void subscribeJointTrajectoryPointCallback(
-    const trajectory_msgs::msg::JointTrajectoryPoint &);
+    const SingleJointTrajectoryPoints::SharedPtr &);
 
 private:
   bool m_recived_can_msg;
 
   std::unique_ptr<cybergear_driver_core::CybergearPacket> m_packet;
+  SingleJointTrajectoryPoints::SharedPtr m_single_joint_trajectory;
 
   can_msgs::msg::Frame::ConstSharedPtr m_last_subscribe_can_frame;
 

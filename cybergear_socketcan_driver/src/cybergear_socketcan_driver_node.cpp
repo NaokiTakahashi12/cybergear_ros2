@@ -51,6 +51,7 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
 : rclcpp::Node(node_name, rclcpp::NodeOptions(node_options).use_intra_process_comms(true)),
   m_recived_can_msg(false),
   m_packet(nullptr),
+  m_single_joint_trajectory(nullptr),
   m_last_subscribe_can_frame(nullptr),
   m_can_frame_subscriber(nullptr),
   m_joint_trajectory_subscriber(nullptr),
@@ -87,6 +88,8 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
   packet_param.min_gain_kd = m_params->pid_gain_range.kd.min;
   packet_param.temperature_scale = m_params->temperature.scale;
   m_packet = std::make_unique<cybergear_driver_core::CybergearPacket>(packet_param);
+
+  m_single_joint_trajectory = std::make_unique<SingleJointTrajectoryPoints>();
 
   m_can_frame_publisher = this->create_publisher<can_msgs::msg::Frame>(
     "to_can_bus", 3);
@@ -187,7 +190,7 @@ void CybergearSocketCanDriverNode::sendChangeRunModeCallback(can_msgs::msg::Fram
 }
 
 void CybergearSocketCanDriverNode::subscribeJointTrajectoryPointCallback(
-  const trajectory_msgs::msg::JointTrajectoryPoint &) {}
+  const SingleJointTrajectoryPoints::SharedPtr &) {}
 
 // TODO(Naoki Takahashi) perse read ram parameter
 void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
@@ -234,7 +237,10 @@ void CybergearSocketCanDriverNode::subscribeJointTrajectoryCallback(
   } else if (msg->points.size() <= static_cast<unsigned int>(cmd_index)) {
     return;
   }
-  subscribeJointTrajectoryPointCallback(msg->points[cmd_index]);
+  if (m_single_joint_trajectory) {
+    m_single_joint_trajectory->load(this->params().joint_name, *msg);
+    subscribeJointTrajectoryPointCallback(m_single_joint_trajectory);
+  }
 }
 
 void CybergearSocketCanDriverNode::sendCanFrameTimerCallback()

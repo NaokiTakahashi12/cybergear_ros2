@@ -27,8 +27,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
-#include <trajectory_msgs/msg/joint_trajectory_point.hpp>
 #include <can_msgs/msg/frame.hpp>
+#include <cybergear_socketcan_driver/single_joint_trajectory_points.hpp>
 
 namespace cybergear_socketcan_driver
 {
@@ -43,7 +43,7 @@ protected:
   void sendCanFrameCallback(can_msgs::msg::Frame &) final;
   void sendChangeRunModeCallback(can_msgs::msg::Frame &) final;
   void subscribeJointTrajectoryPointCallback(
-    const trajectory_msgs::msg::JointTrajectoryPoint &) final;
+    const SingleJointTrajectoryPoints::SharedPtr &) final;
 
 private:
   float m_last_sense_anguler_position;
@@ -84,16 +84,19 @@ void CybergearPositionDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame
 }
 
 void CybergearPositionDriverNode::subscribeJointTrajectoryPointCallback(
-  const trajectory_msgs::msg::JointTrajectoryPoint & msg)
+  const SingleJointTrajectoryPoints::SharedPtr & joint_trajectory)
 {
-  if (msg.positions.size() < 1) {
+  if (!joint_trajectory) {
+    return;
+  } else if (joint_trajectory->points().size() < 1) {
     return;
   }
-  const int dest_position_count = msg.positions.size();
-  m_dest_anguler_positions.resize(dest_position_count);
+  m_dest_anguler_positions.resize(joint_trajectory->points().size());
+  int point_index = 0;
 
-  for (int i = 0; i < dest_position_count; ++i) {
-    m_dest_anguler_positions[i] = static_cast<float>(msg.positions[i]);
+  for (const auto & point : joint_trajectory->points()) {
+    m_dest_anguler_positions[point_index] = point.position;
+    point_index++;
   }
 }
 
