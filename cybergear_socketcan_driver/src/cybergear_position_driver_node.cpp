@@ -48,7 +48,7 @@ protected:
 private:
   float m_last_sense_anguler_position;
 
-  std::vector<float> m_dest_anguler_positions;
+  SingleJointTrajectoryPoints::SharedPtr m_dest_joint_trajectory;
 
   float getDestAngulerPosition();
 };
@@ -56,7 +56,7 @@ private:
 CybergearPositionDriverNode::CybergearPositionDriverNode(const rclcpp::NodeOptions & node_options)
 : CybergearSocketCanDriverNode("cybergear_position_driver", node_options),
   m_last_sense_anguler_position(0),
-  m_dest_anguler_positions() {}
+  m_dest_joint_trajectory(nullptr) {}
 
 CybergearPositionDriverNode::~CybergearPositionDriverNode() {}
 
@@ -86,24 +86,18 @@ void CybergearPositionDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame
 void CybergearPositionDriverNode::subscribeJointTrajectoryPointCallback(
   const SingleJointTrajectoryPoints::SharedPtr & joint_trajectory)
 {
-  if (!joint_trajectory) {
-    return;
-  } else if (joint_trajectory->points().size() < 1) {
+  if (joint_trajectory->points().size() < 1) {
     return;
   }
-  m_dest_anguler_positions.resize(joint_trajectory->points().size());
-  int point_index = 0;
-
-  for (const auto & point : joint_trajectory->points()) {
-    m_dest_anguler_positions[point_index] = point.position;
-    point_index++;
-  }
+  m_dest_joint_trajectory = joint_trajectory;
 }
 
 float CybergearPositionDriverNode::getDestAngulerPosition()
 {
-  if (0 < m_dest_anguler_positions.size()) {
-    return m_dest_anguler_positions[0];
+  if (!m_dest_joint_trajectory) {
+    return m_last_sense_anguler_position;
+  } else if (0 < m_dest_joint_trajectory->points().size()) {
+    return m_dest_joint_trajectory->points()[0].position;
   }
   return m_last_sense_anguler_position;
 }

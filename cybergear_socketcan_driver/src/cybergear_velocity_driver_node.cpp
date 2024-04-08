@@ -42,14 +42,14 @@ protected:
     const SingleJointTrajectoryPoints::SharedPtr &) final;
 
 private:
-  std::vector<float> m_dest_anguler_velocities;
+  SingleJointTrajectoryPoints::SharedPtr m_dest_joint_trajectory;
 
   float getDestAngulerVelocity();
 };
 
 CybergearVeclocityDriverNode::CybergearVeclocityDriverNode(const rclcpp::NodeOptions & node_options)
 : CybergearSocketCanDriverNode("cybergear_velocity_driver", node_options),
-  m_dest_anguler_velocities() {}
+  m_dest_joint_trajectory(nullptr) {}
 
 CybergearVeclocityDriverNode::~CybergearVeclocityDriverNode() {}
 
@@ -70,26 +70,20 @@ void CybergearVeclocityDriverNode::sendChangeRunModeCallback(can_msgs::msg::Fram
 void CybergearVeclocityDriverNode::subscribeJointTrajectoryPointCallback(
   const SingleJointTrajectoryPoints::SharedPtr & joint_trajectory)
 {
-  if (!joint_trajectory) {
-    return;
-  } else if (joint_trajectory->points().size() < 1) {
+  if (joint_trajectory->points().size() < 1) {
     return;
   }
-  m_dest_anguler_velocities.resize(joint_trajectory->points().size());
-  int point_index = 0;
-
-  for (const auto & point : joint_trajectory->points()) {
-    m_dest_anguler_velocities[point_index] = point.velocity;
-    point_index++;
-  }
+  m_dest_joint_trajectory = joint_trajectory;
 }
 
 float CybergearVeclocityDriverNode::getDestAngulerVelocity()
 {
-  if (0 < m_dest_anguler_velocities.size()) {
-    return m_dest_anguler_velocities[0];
+  if (!m_dest_joint_trajectory) {
+    return 0.0f;
+  } else if (0 < m_dest_joint_trajectory->points().size()) {
+    return m_dest_joint_trajectory->points()[0].velocity;
   }
-  return 0.0;
+  return 0.0f;
 }
 }  // namespace cybergear_socketcan_driver
 

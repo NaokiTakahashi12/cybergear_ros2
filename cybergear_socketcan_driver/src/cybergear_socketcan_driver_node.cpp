@@ -89,8 +89,6 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
   packet_param.temperature_scale = m_params->temperature.scale;
   m_packet = std::make_unique<cybergear_driver_core::CybergearPacket>(packet_param);
 
-  m_single_joint_trajectory = std::make_unique<SingleJointTrajectoryPoints>();
-
   m_can_frame_publisher = this->create_publisher<can_msgs::msg::Frame>(
     "to_can_bus", 3);
   m_joint_state_publisher = this->create_publisher<sensor_msgs::msg::JointState>(
@@ -237,6 +235,8 @@ void CybergearSocketCanDriverNode::subscribeJointTrajectoryCallback(
   } else if (msg->points.size() <= static_cast<unsigned int>(cmd_index)) {
     return;
   }
+  m_single_joint_trajectory.reset();
+  m_single_joint_trajectory = std::make_shared<SingleJointTrajectoryPoints>();
   if (m_single_joint_trajectory) {
     m_single_joint_trajectory->load(this->params().joint_name, *msg);
     subscribeJointTrajectoryPointCallback(m_single_joint_trajectory);

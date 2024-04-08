@@ -37,7 +37,7 @@ class SingleJointTrajectoryPoints
 {
 public:
   using UniquePtr = std::unique_ptr<SingleJointTrajectoryPoints>;
-  using SharedPtr = std::unique_ptr<SingleJointTrajectoryPoints>;
+  using SharedPtr = std::shared_ptr<SingleJointTrajectoryPoints>;
 
   using Points = std::vector<SingleJointTrajectoryPoint>;
 

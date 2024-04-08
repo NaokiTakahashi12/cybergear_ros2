@@ -42,15 +42,15 @@ protected:
     const SingleJointTrajectoryPoints::SharedPtr &) final;
 
 private:
+  SingleJointTrajectoryPoints::SharedPtr m_dest_joint_trajectory;
+
   float getDestTorque();
   float getDestCurrent();
-
-  std::vector<float> m_dest_effort;
 };
 
 CybergearTorqueDriverNode::CybergearTorqueDriverNode(const rclcpp::NodeOptions & node_options)
 : CybergearSocketCanDriverNode("cybergear_torque_driver", node_options),
-  m_dest_effort() {}
+  m_dest_joint_trajectory(nullptr) {}
 
 CybergearTorqueDriverNode::~CybergearTorqueDriverNode() {}
 
@@ -71,24 +71,18 @@ void CybergearTorqueDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame &
 void CybergearTorqueDriverNode::subscribeJointTrajectoryPointCallback(
   const SingleJointTrajectoryPoints::SharedPtr & joint_trajectory)
 {
-  if (!joint_trajectory) {
-    return;
-  } else if (joint_trajectory->points().size() < 1) {
+  if (joint_trajectory->points().size() < 1) {
     return;
   }
-  m_dest_effort.resize(joint_trajectory->points().size());
-  int point_index = 0;
-
-  for (const auto & point : joint_trajectory->points()) {
-    m_dest_effort[point_index] = point.effort;
-    point_index++;
-  }
+  m_dest_joint_trajectory = joint_trajectory;
 }
 
 float CybergearTorqueDriverNode::getDestTorque()
 {
-  if (0 < m_dest_effort.size()) {
-    return m_dest_effort[0];
+  if (!m_dest_joint_trajectory) {
+    return 0.0f;
+  } else if (0 < m_dest_joint_trajectory->points().size()) {
+    return m_dest_joint_trajectory->points()[0].effort;
   }
   return 0.0f;
 }
