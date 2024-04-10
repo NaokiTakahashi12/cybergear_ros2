@@ -22,48 +22,23 @@
 
 #pragma once
 
-#include <array>
+#include <builtin_interfaces/msg/duration.hpp>
 
-namespace cybergear_driver_core
+namespace cybergear_socketcan_driver
 {
-// TODO(Naoki Takahashi) endian support
-class ScaledFloatByteConverter
+struct SingleJointTrajectoryPoint
 {
-public:
-  explicit ScaledFloatByteConverter(const float scale)
-  {
-    setScale(scale);
-  }
+  SingleJointTrajectoryPoint()
+  : position(0.0f),
+    velocity(0.0f),
+    acceleration(0.0f),
+    effort(0.0f),
+    time_from_start() {}
 
-  ~ScaledFloatByteConverter() {}
-
-  void setScale(const float scale)
-  {
-    m_scale = scale;
-  }
-
-  uint16_t toDoubleByte(const float value)
-  {
-    return static_cast<uint16_t>(value / m_scale);
-  }
-
-  std::array<uint8_t, 2> toTwoBytes(const float value)
-  {
-    const uint16_t scaled_double_byte = toDoubleByte(value);
-    return {
-      static_cast<uint8_t>((scaled_double_byte & 0xff00) >> 8),
-      static_cast<uint8_t>(scaled_double_byte & 0x00ff)
-    };
-  }
-
-  template<unsigned int Size>
-  float toFloat(const std::array<uint8_t, Size> & data, const unsigned int offset) const
-  {
-    const uint16_t raw_data = data[0 + offset] << 8 | data[1 + offset];
-    return m_scale * static_cast<float>(raw_data);
-  }
-
-private:
-  float m_scale;
+  float position;
+  float velocity;
+  float acceleration;
+  float effort;
+  builtin_interfaces::msg::Duration time_from_start;
 };
-}  // namespace cybergear_driver_core
+}  // namespace cybergear_socketcan_driver

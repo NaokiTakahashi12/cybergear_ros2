@@ -68,6 +68,7 @@ public:
     m_anguler_effort_converter(nullptr),
     m_pid_kp_converter(nullptr),
     m_pid_kd_converter(nullptr),
+    m_motor_current_converter(nullptr),
     m_temperature_converter(nullptr)
   {
     m_frame_id = std::make_unique<CybergearFrameId>(
@@ -88,6 +89,9 @@ public:
     m_pid_kd_converter = std::make_unique<BoundedFloatByteConverter>(
       param.max_gain_kd,
       param.min_gain_kd);
+    m_motor_current_converter = std::make_unique<BoundedFloatByteConverter>(
+      param.max_current,
+      param.min_current);
     m_temperature_converter = std::make_unique<ScaledFloatByteConverter>(
       param.temperature_scale);
   }
@@ -99,15 +103,22 @@ public:
     return *m_frame_id;
   }
 
+  CanFrameUniquePtr createGetParamCommand(const uint16_t param_index)
+  {
+    auto can_frame = std::make_unique<CanFrame>();
+    can_frame->id = m_frame_id->getReadParameterId();
+    return can_frame;
+  }
+
   CanFrameUniquePtr createMoveCommand(const MoveParam & param)
   {
     auto can_frame = std::make_unique<CanFrame>();
 
-    const auto cmd_pos = m_anguler_position_converter->toByte(param.position);
-    const auto cmd_vel = m_anguler_velocity_converter->toByte(param.velocity);
+    const auto cmd_pos = m_anguler_position_converter->toTwoBytes(param.position);
+    const auto cmd_vel = m_anguler_velocity_converter->toTwoBytes(param.velocity);
     const auto cmd_effort = m_anguler_effort_converter->toDoubleByte(param.effort);
-    const auto kp_gain = m_pid_kp_converter->toByte(param.kp);
-    const auto kd_gain = m_pid_kd_converter->toByte(param.kd);
+    const auto kp_gain = m_pid_kp_converter->toTwoBytes(param.kp);
+    const auto kd_gain = m_pid_kd_converter->toTwoBytes(param.kd);
 
     std::copy(cmd_pos.cbegin(), cmd_pos.cend(), can_frame->data.begin());
     std::copy(cmd_vel.cbegin(), cmd_vel.cend(), can_frame->data.begin() + 2);
@@ -119,7 +130,28 @@ public:
     return can_frame;
   }
 
-  CanFrameUniquePtr createPositionCommand(const float position, const float kp, const float kd)
+  CanFrameUniquePtr createWriteParameter(
+    const uint16_t index, const std::array<uint8_t, 4> & param)
+  {
+    auto can_frame = std::make_unique<CanFrame>();
+
+    can_frame->data[0] = index & 0x00ff;
+    can_frame->data[1] = index >> 8;
+    std::copy(param.cbegin(), param.cend(), can_frame->data.begin() + 4);
+
+    can_frame->id = m_frame_id->getWriteParameterId();
+
+    return can_frame;
+  }
+
+  CanFrameUniquePtr createChangeRunMode(const uint8_t mode_id)
+  {
+    std::array<uint8_t, 4> param;
+    param[0] = mode_id;
+    return createWriteParameter(ram_parameters::RUN_MODE, param);
+  }
+
+  CanFrameUniquePtr createPositionWithGainCommand(const float position, const float kp, const float kd)
   {
     MoveParam param;
     param.position = position;
@@ -128,20 +160,42 @@ public:
     return createMoveCommand(param);
   }
 
-  //! @todo kp
-  CanFrameUniquePtr createVelocityCommand(const float velocity, const float kp)
+  CanFrameUniquePtr createPositionCommand(const float position)
   {
-    MoveParam param;
-    param.velocity = velocity;
-    param.kp = kp;
-    return createMoveCommand(param);
+    const auto param = m_anguler_position_converter->toFourBytes(position);
+    return createWriteParameter(ram_parameters::DEST_POSITION_REF, param);
   }
 
-  CanFrameUniquePtr createEffortCommand(const float effort)
+  CanFrameUniquePtr createVelocityCommand(const float velocity)
   {
-    MoveParam param;
-    param.velocity = effort;
-    return createMoveCommand(param);
+    const auto param = m_anguler_velocity_converter->toFourBytes(velocity);
+    return createWriteParameter(ram_parameters::SPEED_REF, param);
+  }
+
+  CanFrameUniquePtr createCurrentCommand(const float current)
+  {
+    const auto param = m_motor_current_converter->toFourBytes(current);
+    return createWriteParameter(ram_parameters::IQ_REF, param);
+  }
+
+  CanFrameUniquePtr createChangeToOperationModeCommand()
+  {
+    return createChangeRunMode(run_modes::OPERATION);
+  }
+
+  CanFrameUniquePtr createChangeToPositionModeCommand()
+  {
+    return createChangeRunMode(run_modes::POSITION);
+  }
+
+  CanFrameUniquePtr createChangeToVelocityModeCommand()
+  {
+    return createChangeRunMode(run_modes::SPEED);
+  }
+
+  CanFrameUniquePtr createChangeToCurrentModeCommand()
+  {
+    return createChangeRunMode(run_modes::CURRENT);
   }
 
   float persePosition(const CanData & data) const
@@ -171,6 +225,7 @@ private:
   std::unique_ptr<BoundedFloatByteConverter> m_anguler_effort_converter;
   std::unique_ptr<BoundedFloatByteConverter> m_pid_kp_converter;
   std::unique_ptr<BoundedFloatByteConverter> m_pid_kd_converter;
+  std::unique_ptr<BoundedFloatByteConverter> m_motor_current_converter;
   std::unique_ptr<ScaledFloatByteConverter> m_temperature_converter;
 };
 }  // namespace cybergear_driver_core

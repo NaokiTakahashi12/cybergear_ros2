@@ -112,6 +112,16 @@ public:
     return frameId(
       m_device_id, commands::RESET_TORQUE, m_primary_id);
   }
+  uint32_t getReadParameterId()
+  {
+    return frameId(
+      m_device_id, commands::READ_PARAMETER, m_primary_id);
+  }
+  uint32_t getWriteParameterId()
+  {
+    return frameId(
+      m_device_id, commands::WRITE_PARAMETER, m_primary_id);
+  }
 
 private:
   const uint8_t m_device_id;
