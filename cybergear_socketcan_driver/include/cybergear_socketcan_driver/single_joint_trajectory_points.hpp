@@ -53,6 +53,7 @@ public:
   void load(const std::string & joint_name, const trajectory_msgs::msg::JointTrajectory &);
 
   float getLerpPosition(const builtin_interfaces::msg::Time &);
+  float getLerpVelocity(const builtin_interfaces::msg::Time &);
 
   const Points & points();
 

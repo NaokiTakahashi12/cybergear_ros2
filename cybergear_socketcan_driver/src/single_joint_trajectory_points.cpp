@@ -145,6 +145,46 @@ float SingleJointTrajectoryPoints::getLerpPosition(const builtin_interfaces::msg
   return normalized_duration * dest_delta + start_point;
 }
 
+float SingleJointTrajectoryPoints::getLerpVelocity(const builtin_interfaces::msg::Time & time)
+{
+  if (m_trajectory_durations_from_recived.empty()) {
+    return 0.0f;
+  }
+  rclcpp::Time control_time(time);
+  const double time_from_recived = (control_time - m_start_trajectory_time).seconds();
+
+  if (m_trajectory_durations_from_recived.back() < time_from_recived) {
+    return m_trajectory_points.back().velocity;
+  }
+  unsigned int point_index = 0;
+
+  for (const auto & duration : m_trajectory_durations_from_recived) {
+    if (duration > time_from_recived) {
+      break;
+    }
+    point_index++;
+  }
+  float start_point;
+
+  if (point_index == 0) {
+    start_point = m_start_trajectory_point.velocity;
+  } else {
+    start_point = m_trajectory_points[point_index - 1].velocity;
+  }
+  const float dest_delta = m_trajectory_points[point_index].velocity - start_point;
+  const double point_duration = rclcpp::Duration(
+    m_trajectory_points[point_index].time_from_start).seconds();
+  float normalized_duration;
+
+  if (point_duration == 0.0) {
+    normalized_duration = 1.0;
+  } else {
+    const double time_left = m_trajectory_durations_from_recived[point_index] - time_from_recived;
+    normalized_duration = 1 - (time_left) / point_duration;
+  }
+  return normalized_duration * dest_delta + start_point;
+}
+
 const SingleJointTrajectoryPoints::Points & SingleJointTrajectoryPoints::points()
 {
   return m_trajectory_points;
