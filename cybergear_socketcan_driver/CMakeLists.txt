@@ -26,6 +26,7 @@ ament_auto_add_library(${PROJECT_NAME}_components SHARED
   src/cybergear_position_driver_node.cpp
   src/cybergear_velocity_driver_node.cpp
   src/cybergear_torque_driver_node.cpp
+  src/cybergear_default_driver_node.cpp
 )
 target_compile_features(${PROJECT_NAME}_components
   PUBLIC
@@ -44,12 +45,16 @@ rclcpp_components_register_node(${PROJECT_NAME}_components
   EXECUTABLE cybergear_position_driver_node
 )
 rclcpp_components_register_node(${PROJECT_NAME}_components
-  PLUGIN "cybergear_socketcan_driver::CybergearVeclocityDriverNode"
+  PLUGIN "cybergear_socketcan_driver::CybergearVelocityDriverNode"
   EXECUTABLE cybergear_velocity_driver_node
 )
 rclcpp_components_register_node(${PROJECT_NAME}_components
   PLUGIN "cybergear_socketcan_driver::CybergearTorqueDriverNode"
   EXECUTABLE cybergear_torque_driver_node
+)
+rclcpp_components_register_node(${PROJECT_NAME}_components
+  PLUGIN "cybergear_socketcan_driver::CybergearDefaultDriverNode"
+  EXECUTABLE cybergear_default_driver_node
 )
 
 install(
