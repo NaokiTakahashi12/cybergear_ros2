@@ -29,11 +29,11 @@
 
 namespace cybergear_socketcan_driver
 {
-class CybergearVeclocityDriverNode : public CybergearSocketCanDriverNode
+class CybergearVelocityDriverNode : public CybergearSocketCanDriverNode
 {
 public:
-  explicit CybergearVeclocityDriverNode(const rclcpp::NodeOptions &);
-  virtual ~CybergearVeclocityDriverNode();
+  explicit CybergearVelocityDriverNode(const rclcpp::NodeOptions &);
+  virtual ~CybergearVelocityDriverNode();
 
 protected:
   void sendCanFrameCallback(can_msgs::msg::Frame &) final;
@@ -47,27 +47,27 @@ private:
   float getDestAngulerVelocity();
 };
 
-CybergearVeclocityDriverNode::CybergearVeclocityDriverNode(const rclcpp::NodeOptions & node_options)
+CybergearVelocityDriverNode::CybergearVelocityDriverNode(const rclcpp::NodeOptions & node_options)
 : CybergearSocketCanDriverNode("cybergear_velocity_driver", node_options),
   m_dest_joint_trajectory(nullptr) {}
 
-CybergearVeclocityDriverNode::~CybergearVeclocityDriverNode() {}
+CybergearVelocityDriverNode::~CybergearVelocityDriverNode() {}
 
-void CybergearVeclocityDriverNode::sendCanFrameCallback(can_msgs::msg::Frame & msg)
+void CybergearVelocityDriverNode::sendCanFrameCallback(can_msgs::msg::Frame & msg)
 {
   const auto can_frame = this->packet().createVelocityCommand(getDestAngulerVelocity());
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
   msg.id = can_frame->id;
 }
 
-void CybergearVeclocityDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame & msg)
+void CybergearVelocityDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame & msg)
 {
   const auto can_frame = this->packet().createChangeToVelocityModeCommand();
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
   msg.id = can_frame->id;
 }
 
-void CybergearVeclocityDriverNode::subscribeJointTrajectoryPointCallback(
+void CybergearVelocityDriverNode::subscribeJointTrajectoryPointCallback(
   const SingleJointTrajectoryPoints::SharedPtr & joint_trajectory)
 {
   if (joint_trajectory->points().size() < 1) {
@@ -76,7 +76,7 @@ void CybergearVeclocityDriverNode::subscribeJointTrajectoryPointCallback(
   m_dest_joint_trajectory = joint_trajectory;
 }
 
-float CybergearVeclocityDriverNode::getDestAngulerVelocity()
+float CybergearVelocityDriverNode::getDestAngulerVelocity()
 {
   if (!m_dest_joint_trajectory) {
     return 0.0f;
@@ -87,4 +87,4 @@ float CybergearVeclocityDriverNode::getDestAngulerVelocity()
 }
 }  // namespace cybergear_socketcan_driver
 
-RCLCPP_COMPONENTS_REGISTER_NODE(cybergear_socketcan_driver::CybergearVeclocityDriverNode)
+RCLCPP_COMPONENTS_REGISTER_NODE(cybergear_socketcan_driver::CybergearVelocityDriverNode)
