@@ -66,8 +66,8 @@ private:
   bool m_recived_can_msg;
 
   std::unique_ptr<cybergear_driver_core::CybergearPacket> m_packet;
-  SingleJointTrajectoryPoints::SharedPtr m_single_joint_trajectory;
 
+  sensor_msgs::msg::JointState::UniquePtr m_last_subscribe_joint_state;
   can_msgs::msg::Frame::ConstSharedPtr m_last_subscribe_can_frame;
 
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr m_can_frame_subscriber;
@@ -87,6 +87,8 @@ private:
 
   std::unique_ptr<cybergear_socketcan_driver_node::ParamListener> m_param_listener;
   std::unique_ptr<cybergear_socketcan_driver_node::Params> m_params;
+
+  SingleJointTrajectoryPoints::SharedPtr m_single_joint_trajectory;
 
   void subscribeCanFrameCallback(const can_msgs::msg::Frame::ConstSharedPtr &);
   void subscribeJointTrajectoryCallback(

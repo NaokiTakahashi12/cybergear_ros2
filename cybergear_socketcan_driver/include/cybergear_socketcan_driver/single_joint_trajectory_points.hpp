@@ -26,6 +26,8 @@
 #include <string>
 #include <vector>
 
+#include <rclcpp/time.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
 #include <trajectory_msgs/msg/joint_trajectory_point.hpp>
 
@@ -46,13 +48,22 @@ public:
   ~SingleJointTrajectoryPoints();
 
   void reset();
+
+  void initTrajectoryPoint(const sensor_msgs::msg::JointState &);
   void load(const std::string & joint_name, const trajectory_msgs::msg::JointTrajectory &);
+
+  float getLerpPosition(const builtin_interfaces::msg::Time &);
+
   const Points & points();
 
   SingleJointTrajectoryPoints & operator=(const SingleJointTrajectoryPoints &);
 
 private:
+  SingleJointTrajectoryPoint m_start_trajectory_point;
   Points m_trajectory_points;
+
+  rclcpp::Time m_start_trajectory_time;
+  std::vector<double> m_trajectory_durations_from_recived;
 
   unsigned int getJointIndexFromJointNames(
     const std::string &, const std::vector<std::string> &);

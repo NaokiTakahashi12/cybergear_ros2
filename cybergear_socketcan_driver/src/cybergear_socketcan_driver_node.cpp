@@ -51,7 +51,7 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
 : rclcpp::Node(node_name, rclcpp::NodeOptions(node_options).use_intra_process_comms(true)),
   m_recived_can_msg(false),
   m_packet(nullptr),
-  m_single_joint_trajectory(nullptr),
+  m_last_subscribe_joint_state(nullptr),
   m_last_subscribe_can_frame(nullptr),
   m_can_frame_subscriber(nullptr),
   m_joint_trajectory_subscriber(nullptr),
@@ -63,7 +63,8 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
   m_enable_torque_service(nullptr),
   m_diagnostic_updater(nullptr),
   m_param_listener(nullptr),
-  m_params(nullptr)
+  m_params(nullptr),
+  m_single_joint_trajectory(nullptr)
 {
   RCLCPP_INFO_STREAM(this->get_logger(), "Start " << this->get_name());
   RCLCPP_WARN(this->get_logger(), "THIS NODE IS UNDER DEVELOPMENT");
@@ -239,6 +240,9 @@ void CybergearSocketCanDriverNode::subscribeJointTrajectoryCallback(
   m_single_joint_trajectory = std::make_shared<SingleJointTrajectoryPoints>();
   if (m_single_joint_trajectory) {
     m_single_joint_trajectory->load(this->params().joint_name, *msg);
+    if (m_last_subscribe_joint_state) {
+      m_single_joint_trajectory->initTrajectoryPoint(*m_last_subscribe_joint_state);
+    }
     subscribeJointTrajectoryPointCallback(m_single_joint_trajectory);
   }
 }
@@ -339,6 +343,11 @@ void CybergearSocketCanDriverNode::procFeedbackPacket(const can_msgs::msg::Frame
     joint_state_msg->position.push_back(m_packet->persePosition(msg.data));
     joint_state_msg->velocity.push_back(m_packet->perseVelocity(msg.data));
     joint_state_msg->effort.push_back(m_packet->perseEffort(msg.data));
+
+    if (!m_last_subscribe_joint_state) {
+      m_last_subscribe_joint_state = std::make_unique<sensor_msgs::msg::JointState>();
+    }
+    *m_last_subscribe_joint_state = *joint_state_msg;
 
     procFeedbackJointStateCallback(*joint_state_msg);
 

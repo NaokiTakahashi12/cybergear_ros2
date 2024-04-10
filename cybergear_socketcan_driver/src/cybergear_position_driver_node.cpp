@@ -97,7 +97,7 @@ float CybergearPositionDriverNode::getDestAngulerPosition()
   if (!m_dest_joint_trajectory) {
     return m_last_sense_anguler_position;
   } else if (0 < m_dest_joint_trajectory->points().size()) {
-    return m_dest_joint_trajectory->points()[0].position;
+    return m_dest_joint_trajectory->getLerpPosition(this->get_clock()->now());
   }
   return m_last_sense_anguler_position;
 }
