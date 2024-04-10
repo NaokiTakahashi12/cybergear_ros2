@@ -82,7 +82,7 @@ float CybergearTorqueDriverNode::getDestTorque()
   if (!m_dest_joint_trajectory) {
     return 0.0f;
   } else if (0 < m_dest_joint_trajectory->points().size()) {
-    return m_dest_joint_trajectory->points()[0].effort;
+    return m_dest_joint_trajectory->getLerpEffort(this->get_clock()->now());
   }
   return 0.0f;
 }

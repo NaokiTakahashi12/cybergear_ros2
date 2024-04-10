@@ -54,6 +54,7 @@ public:
 
   float getLerpPosition(const builtin_interfaces::msg::Time &);
   float getLerpVelocity(const builtin_interfaces::msg::Time &);
+  float getLerpEffort(const builtin_interfaces::msg::Time &);
 
   const Points & points();
 
