@@ -50,6 +50,7 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
   const std::string & node_name, const rclcpp::NodeOptions & node_options)
 : rclcpp::Node(node_name, rclcpp::NodeOptions(node_options).use_intra_process_comms(true)),
   m_recived_can_msg(false),
+  m_no_response_can_msg_counter(0),
   m_packet(nullptr),
   m_last_subscribe_joint_state(nullptr),
   m_last_subscribe_can_frame(nullptr),
@@ -258,6 +259,7 @@ void CybergearSocketCanDriverNode::sendCanFrameTimerCallback()
     }
     sendFeedbackRequst();
     wait_state_print_cycle_counter++;
+    m_no_response_can_msg_counter++;
     return;
   }
   auto msg = std::make_unique<can_msgs::msg::Frame>();
@@ -301,6 +303,9 @@ void CybergearSocketCanDriverNode::enableTorqueServiceCallback(
 void CybergearSocketCanDriverNode::canFrameDiagnosricsCallback(
   diagnostic_updater::DiagnosticStatusWrapper & diag_status)
 {
+  const auto no_response_can_msg_counter = m_no_response_can_msg_counter;
+  m_no_response_can_msg_counter = 0;
+
   if (!m_last_subscribe_can_frame) {
     diag_status.summary(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR,
@@ -308,20 +313,28 @@ void CybergearSocketCanDriverNode::canFrameDiagnosricsCallback(
     return;
   }
   std::string control_mode;
+
   if (m_packet->frameId().isResetMode(m_last_subscribe_can_frame->id)) {
     control_mode = "reset";
   } else if (m_packet->frameId().isCaliMode(m_last_subscribe_can_frame->id)) {
     control_mode = "cali";
   } else if (m_packet->frameId().isRunningMode(m_last_subscribe_can_frame->id)) {
     control_mode = "running";
+  } else {
+    control_mode = "unknown";
   }
   diag_status.add("Control mode", control_mode);
   diag_status.add("Raw ID", m_last_subscribe_can_frame->id);
+  diag_status.add("No response", no_response_can_msg_counter);
+  diag_status.add("Joint trajectory subscribed", (m_single_joint_trajectory != nullptr));
 
   if (m_packet->frameId().hasError(m_last_subscribe_can_frame->id)) {
-    diag_status.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Recived error");
+    diag_status.summary(
+      diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Recived error from CyberGear");
+  } else if (no_response_can_msg_counter > 0) {
+    diag_status.summary(diagnostic_msgs::msg::DiagnosticStatus::WARN, "No response CyberGear");
   } else {
-    diag_status.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Recived CAN frame");
+    diag_status.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "No problem");
   }
   m_last_subscribe_can_frame.reset();
 }
