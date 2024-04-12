@@ -64,6 +64,7 @@ protected:
 
 private:
   bool m_recived_can_msg;
+  unsigned int m_no_response_can_msg_counter;
 
   std::unique_ptr<cybergear_driver_core::CybergearPacket> m_packet;
 
