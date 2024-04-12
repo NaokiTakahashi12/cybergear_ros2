@@ -313,16 +313,20 @@ void CybergearSocketCanDriverNode::canFrameDiagnosricsCallback(
     return;
   }
   std::string control_mode;
+
   if (m_packet->frameId().isResetMode(m_last_subscribe_can_frame->id)) {
     control_mode = "reset";
   } else if (m_packet->frameId().isCaliMode(m_last_subscribe_can_frame->id)) {
     control_mode = "cali";
   } else if (m_packet->frameId().isRunningMode(m_last_subscribe_can_frame->id)) {
     control_mode = "running";
+  } else {
+    control_mode = "unknown";
   }
   diag_status.add("Control mode", control_mode);
   diag_status.add("Raw ID", m_last_subscribe_can_frame->id);
   diag_status.add("No response", no_response_can_msg_counter);
+  diag_status.add("Joint trajectory subscribed", (m_single_joint_trajectory != nullptr));
 
   if (m_packet->frameId().hasError(m_last_subscribe_can_frame->id)) {
     diag_status.summary(
