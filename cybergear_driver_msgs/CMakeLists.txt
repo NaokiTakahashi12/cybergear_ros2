@@ -7,9 +7,21 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+
+ament_auto_find_build_dependencies()
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  msg/Setpoint.msg
+  msg/SetpointStamped.msg
+  msg/SetpointWithGain.msg
+  msg/SetpointWithGainStamped.msg
+  DEPENDENCIES
+    builtin_interfaces
+    std_msgs
+)
+
+ament_export_dependencies(rosidl_default_runtime)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
