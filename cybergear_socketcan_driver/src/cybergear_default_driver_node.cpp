@@ -38,25 +38,21 @@ public:
 
 protected:
   void procFeedbackJointStateCallback(const sensor_msgs::msg::JointState &) final;
-  void sendCanFrameCallback(can_msgs::msg::Frame &) final;
+  void sendCanFrameFromTrajectoryCallback(
+    can_msgs::msg::Frame &,
+    const SingleJointTrajectoryPoints &) final;
+  void sendCanFrameFromSetpointCallback(
+    can_msgs::msg::Frame &,
+    const cybergear_driver_msgs::msg::SetpointStamped &) final;
   void sendChangeRunModeCallback(can_msgs::msg::Frame &) final;
-  void subscribeJointTrajectoryPointCallback(
-    const SingleJointTrajectoryPoints::SharedPtr &) final;
 
 private:
   float m_last_sense_anguler_position;
-
-  SingleJointTrajectoryPoints::SharedPtr m_dest_joint_trajectory;
-
-  float getDestAngulerPosition();
-  float getDestAngulerVelocity();
-  float getDestTorque();
 };
 
 CybergearDefaultDriverNode::CybergearDefaultDriverNode(const rclcpp::NodeOptions & node_options)
 : CybergearSocketCanDriverNode("cybergear_default_driver", node_options),
-  m_last_sense_anguler_position(0.0f),
-  m_dest_joint_trajectory(nullptr) {}
+  m_last_sense_anguler_position(0.0f) {}
 
 CybergearDefaultDriverNode::~CybergearDefaultDriverNode() {}
 
@@ -69,13 +65,38 @@ void CybergearDefaultDriverNode::procFeedbackJointStateCallback(
   m_last_sense_anguler_position = msg.position[0];
 }
 
-void CybergearDefaultDriverNode::sendCanFrameCallback(can_msgs::msg::Frame & msg)
+void CybergearDefaultDriverNode::sendCanFrameFromTrajectoryCallback(
+  can_msgs::msg::Frame & msg,
+  const SingleJointTrajectoryPoints & single_joint_trajectory)
 {
   cybergear_driver_core::MoveParam move_param;
 
-  move_param.position = getDestAngulerPosition();
-  move_param.velocity = getDestAngulerVelocity();
-  move_param.effort = getDestTorque();
+  if (0 < single_joint_trajectory.points().size()) {
+    move_param.position = single_joint_trajectory.getLerpPosition(this->get_clock()->now());
+    move_param.velocity = single_joint_trajectory.getLerpVelocity(this->get_clock()->now());
+    move_param.effort = single_joint_trajectory.getLerpEffort(this->get_clock()->now());
+  } else {
+    move_param.position = m_last_sense_anguler_position;
+    move_param.velocity = 0.0f;
+    move_param.effort = 0.0f;
+  }
+  move_param.kp = this->params().pid_gain.kp;
+  move_param.kd = this->params().pid_gain.kd;
+
+  const auto can_frame = this->packet().createMoveCommand(move_param);
+  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
+  msg.id = can_frame->id;
+}
+
+void CybergearDefaultDriverNode::sendCanFrameFromSetpointCallback(
+  can_msgs::msg::Frame & msg,
+  const cybergear_driver_msgs::msg::SetpointStamped & setpoint_msg)
+{
+  cybergear_driver_core::MoveParam move_param;
+
+  move_param.position = setpoint_msg.point.position;
+  move_param.velocity = setpoint_msg.point.velocity;
+  move_param.effort = setpoint_msg.point.effort;
   move_param.kp = this->params().pid_gain.kp;
   move_param.kd = this->params().pid_gain.kd;
 
@@ -89,45 +110,6 @@ void CybergearDefaultDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame 
   const auto can_frame = this->packet().createChangeToOperationModeCommand();
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
   msg.id = can_frame->id;
-}
-
-void CybergearDefaultDriverNode::subscribeJointTrajectoryPointCallback(
-  const SingleJointTrajectoryPoints::SharedPtr & joint_trajectory)
-{
-  if (joint_trajectory->points().size() < 1) {
-    return;
-  }
-  m_dest_joint_trajectory = joint_trajectory;
-}
-
-float CybergearDefaultDriverNode::getDestAngulerPosition()
-{
-  if (!m_dest_joint_trajectory) {
-    return m_last_sense_anguler_position;
-  } else if (0 < m_dest_joint_trajectory->points().size()) {
-    return m_dest_joint_trajectory->getLerpPosition(this->get_clock()->now());
-  }
-  return m_last_sense_anguler_position;
-}
-
-float CybergearDefaultDriverNode::getDestAngulerVelocity()
-{
-  if (!m_dest_joint_trajectory) {
-    return 0.0f;
-  } else if (0 < m_dest_joint_trajectory->points().size()) {
-    return m_dest_joint_trajectory->getLerpVelocity(this->get_clock()->now());
-  }
-  return 0.0f;
-}
-
-float CybergearDefaultDriverNode::getDestTorque()
-{
-  if (!m_dest_joint_trajectory) {
-    return 0.0f;
-  } else if (0 < m_dest_joint_trajectory->points().size()) {
-    return m_dest_joint_trajectory->getLerpEffort(this->get_clock()->now());
-  }
-  return 0.0f;
 }
 }  // namespace cybergear_socketcan_driver
 

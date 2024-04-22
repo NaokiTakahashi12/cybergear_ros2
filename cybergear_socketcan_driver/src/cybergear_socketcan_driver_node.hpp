@@ -33,6 +33,7 @@
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
 #include <trajectory_msgs/msg/joint_trajectory_point.hpp>
 #include <can_msgs/msg/frame.hpp>
+#include <cybergear_driver_msgs/msg/setpoint_stamped.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <cybergear_socketcan_driver_node_params.hpp>
 #include <cybergear_driver_core/cybergear_driver_core.hpp>
@@ -56,9 +57,18 @@ protected:
   virtual void procFeedbackJointStateCallback(const sensor_msgs::msg::JointState &);
   virtual void procFeedbackTemperatureCallabck(const sensor_msgs::msg::Temperature &);
 
+  //! @todo remove
   virtual void sendCanFrameCallback(can_msgs::msg::Frame &);
+
+  virtual void sendCanFrameFromTrajectoryCallback(
+    can_msgs::msg::Frame &,
+    const SingleJointTrajectoryPoints &);
+  virtual void sendCanFrameFromSetpointCallback(
+    can_msgs::msg::Frame &,
+    const cybergear_driver_msgs::msg::SetpointStamped &);
   virtual void sendChangeRunModeCallback(can_msgs::msg::Frame &);
 
+  //! @todo remove
   virtual void subscribeJointTrajectoryPointCallback(
     const SingleJointTrajectoryPoints::SharedPtr &);
 
@@ -70,10 +80,13 @@ private:
 
   sensor_msgs::msg::JointState::UniquePtr m_last_subscribe_joint_state;
   can_msgs::msg::Frame::ConstSharedPtr m_last_subscribe_can_frame;
+  cybergear_driver_msgs::msg::SetpointStamped::ConstSharedPtr m_last_subscribe_setpoint;
 
   rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr m_can_frame_subscriber;
   rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr
     m_joint_trajectory_subscriber;
+  rclcpp::Subscription<cybergear_driver_msgs::msg::SetpointStamped>::SharedPtr
+    m_joint_setpoint_subscriber;
 
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr m_can_frame_publisher;
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr m_joint_state_publisher;
@@ -94,6 +107,8 @@ private:
   void subscribeCanFrameCallback(const can_msgs::msg::Frame::ConstSharedPtr &);
   void subscribeJointTrajectoryCallback(
     const trajectory_msgs::msg::JointTrajectory::ConstSharedPtr &);
+  void subscribeJointSetpointCallback(
+    const cybergear_driver_msgs::msg::SetpointStamped::ConstSharedPtr &);
   void sendCanFrameTimerCallback();
   void updateParameterTimerCallback();
   void enableTorqueServiceCallback(

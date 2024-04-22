@@ -36,26 +36,39 @@ public:
   virtual ~CybergearVelocityDriverNode();
 
 protected:
-  void sendCanFrameCallback(can_msgs::msg::Frame &) final;
+  void sendCanFrameFromTrajectoryCallback(
+    can_msgs::msg::Frame &,
+    const SingleJointTrajectoryPoints &) final;
+  void sendCanFrameFromSetpointCallback(
+    can_msgs::msg::Frame &,
+    const cybergear_driver_msgs::msg::SetpointStamped &) final;
   void sendChangeRunModeCallback(can_msgs::msg::Frame &) final;
-  void subscribeJointTrajectoryPointCallback(
-    const SingleJointTrajectoryPoints::SharedPtr &) final;
-
-private:
-  SingleJointTrajectoryPoints::SharedPtr m_dest_joint_trajectory;
-
-  float getDestAngulerVelocity();
 };
 
 CybergearVelocityDriverNode::CybergearVelocityDriverNode(const rclcpp::NodeOptions & node_options)
-: CybergearSocketCanDriverNode("cybergear_velocity_driver", node_options),
-  m_dest_joint_trajectory(nullptr) {}
+: CybergearSocketCanDriverNode("cybergear_velocity_driver", node_options) {}
 
 CybergearVelocityDriverNode::~CybergearVelocityDriverNode() {}
 
-void CybergearVelocityDriverNode::sendCanFrameCallback(can_msgs::msg::Frame & msg)
+void CybergearVelocityDriverNode::sendCanFrameFromTrajectoryCallback(
+  can_msgs::msg::Frame & msg,
+  const SingleJointTrajectoryPoints & single_joint_trajectory)
 {
-  const auto can_frame = this->packet().createVelocityCommand(getDestAngulerVelocity());
+  float velocity = 0.0f;
+
+  if (0 < single_joint_trajectory.points().size()) {
+    velocity = single_joint_trajectory.getLerpVelocity(this->get_clock()->now());
+  }
+  const auto can_frame = this->packet().createVelocityCommand(velocity);
+  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
+  msg.id = can_frame->id;
+}
+
+void CybergearVelocityDriverNode::sendCanFrameFromSetpointCallback(
+  can_msgs::msg::Frame & msg,
+  const cybergear_driver_msgs::msg::SetpointStamped & setpoint_msg)
+{
+  const auto can_frame = this->packet().createVelocityCommand(setpoint_msg.point.velocity);
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
   msg.id = can_frame->id;
 }
@@ -65,25 +78,6 @@ void CybergearVelocityDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame
   const auto can_frame = this->packet().createChangeToVelocityModeCommand();
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
   msg.id = can_frame->id;
-}
-
-void CybergearVelocityDriverNode::subscribeJointTrajectoryPointCallback(
-  const SingleJointTrajectoryPoints::SharedPtr & joint_trajectory)
-{
-  if (joint_trajectory->points().size() < 1) {
-    return;
-  }
-  m_dest_joint_trajectory = joint_trajectory;
-}
-
-float CybergearVelocityDriverNode::getDestAngulerVelocity()
-{
-  if (!m_dest_joint_trajectory) {
-    return 0.0f;
-  } else if (0 < m_dest_joint_trajectory->points().size()) {
-    return m_dest_joint_trajectory->getLerpVelocity(this->get_clock()->now());
-  }
-  return 0.0f;
 }
 }  // namespace cybergear_socketcan_driver
 
