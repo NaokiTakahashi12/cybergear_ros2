@@ -105,7 +105,7 @@ void SingleJointTrajectoryPoints::load(
   m_start_trajectory_time = rclcpp::Time(joint_trajectory.header.stamp);
 }
 
-float SingleJointTrajectoryPoints::getLerpPosition(const builtin_interfaces::msg::Time & time)
+float SingleJointTrajectoryPoints::getLerpPosition(const builtin_interfaces::msg::Time & time) const
 {
   if (m_trajectory_durations_from_recived.empty()) {
     return 0.0f;
@@ -145,7 +145,7 @@ float SingleJointTrajectoryPoints::getLerpPosition(const builtin_interfaces::msg
   return normalized_duration * dest_delta + start_point;
 }
 
-float SingleJointTrajectoryPoints::getLerpVelocity(const builtin_interfaces::msg::Time & time)
+float SingleJointTrajectoryPoints::getLerpVelocity(const builtin_interfaces::msg::Time & time) const
 {
   if (m_trajectory_durations_from_recived.empty()) {
     return 0.0f;
@@ -185,7 +185,7 @@ float SingleJointTrajectoryPoints::getLerpVelocity(const builtin_interfaces::msg
   return normalized_duration * dest_delta + start_point;
 }
 
-float SingleJointTrajectoryPoints::getLerpEffort(const builtin_interfaces::msg::Time & time)
+float SingleJointTrajectoryPoints::getLerpEffort(const builtin_interfaces::msg::Time & time) const
 {
   if (m_trajectory_durations_from_recived.empty()) {
     return 0.0f;
@@ -225,7 +225,7 @@ float SingleJointTrajectoryPoints::getLerpEffort(const builtin_interfaces::msg::
   return normalized_duration * dest_delta + start_point;
 }
 
-const SingleJointTrajectoryPoints::Points & SingleJointTrajectoryPoints::points()
+const SingleJointTrajectoryPoints::Points & SingleJointTrajectoryPoints::points() const
 {
   return m_trajectory_points;
 }
