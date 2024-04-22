@@ -36,27 +36,44 @@ public:
   virtual ~CybergearTorqueDriverNode();
 
 protected:
-  void sendCanFrameCallback(can_msgs::msg::Frame &) final;
+  void sendCanFrameFromTrajectoryCallback(
+    can_msgs::msg::Frame &,
+    const SingleJointTrajectoryPoints &) final;
+  void sendCanFrameFromSetpointCallback(
+    can_msgs::msg::Frame &,
+    const cybergear_driver_msgs::msg::SetpointStamped &) final;
   void sendChangeRunModeCallback(can_msgs::msg::Frame &) final;
-  void subscribeJointTrajectoryPointCallback(
-    const SingleJointTrajectoryPoints::SharedPtr &) final;
 
 private:
-  SingleJointTrajectoryPoints::SharedPtr m_dest_joint_trajectory;
-
-  float getDestTorque();
-  float getDestCurrent();
+  float getDestCurrent(const float dest_torque);
 };
 
 CybergearTorqueDriverNode::CybergearTorqueDriverNode(const rclcpp::NodeOptions & node_options)
-: CybergearSocketCanDriverNode("cybergear_torque_driver", node_options),
-  m_dest_joint_trajectory(nullptr) {}
+: CybergearSocketCanDriverNode("cybergear_torque_driver", node_options) {}
 
 CybergearTorqueDriverNode::~CybergearTorqueDriverNode() {}
 
-void CybergearTorqueDriverNode::sendCanFrameCallback(can_msgs::msg::Frame & msg)
+void CybergearTorqueDriverNode::sendCanFrameFromTrajectoryCallback(
+  can_msgs::msg::Frame & msg,
+  const SingleJointTrajectoryPoints & single_joint_trajectory)
 {
-  const auto can_frame = this->packet().createCurrentCommand(getDestCurrent());
+  float effort = 0.0f;
+
+  if (0 < single_joint_trajectory.points().size()) {
+    effort = single_joint_trajectory.getLerpEffort(this->get_clock()->now());
+  }
+  const auto can_frame = this->packet().createCurrentCommand(
+    getDestCurrent(effort));
+  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
+  msg.id = can_frame->id;
+}
+
+void CybergearTorqueDriverNode::sendCanFrameFromSetpointCallback(
+  can_msgs::msg::Frame & msg,
+  const cybergear_driver_msgs::msg::SetpointStamped & setpoint_msg)
+{
+  const auto can_frame = this->packet().createCurrentCommand(
+    getDestCurrent(setpoint_msg.point.effort));
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
   msg.id = can_frame->id;
 }
@@ -68,28 +85,8 @@ void CybergearTorqueDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame &
   msg.id = can_frame->id;
 }
 
-void CybergearTorqueDriverNode::subscribeJointTrajectoryPointCallback(
-  const SingleJointTrajectoryPoints::SharedPtr & joint_trajectory)
+float CybergearTorqueDriverNode::getDestCurrent(const float dest_torque)
 {
-  if (joint_trajectory->points().size() < 1) {
-    return;
-  }
-  m_dest_joint_trajectory = joint_trajectory;
-}
-
-float CybergearTorqueDriverNode::getDestTorque()
-{
-  if (!m_dest_joint_trajectory) {
-    return 0.0f;
-  } else if (0 < m_dest_joint_trajectory->points().size()) {
-    return m_dest_joint_trajectory->getLerpEffort(this->get_clock()->now());
-  }
-  return 0.0f;
-}
-
-float CybergearTorqueDriverNode::getDestCurrent()
-{
-  const float dest_torque = getDestTorque();
   const float torque_constant = this->params().torque_constant;
 
   if (0 == dest_torque) {

@@ -52,11 +52,11 @@ public:
   void initTrajectoryPoint(const sensor_msgs::msg::JointState &);
   void load(const std::string & joint_name, const trajectory_msgs::msg::JointTrajectory &);
 
-  float getLerpPosition(const builtin_interfaces::msg::Time &);
-  float getLerpVelocity(const builtin_interfaces::msg::Time &);
-  float getLerpEffort(const builtin_interfaces::msg::Time &);
+  float getLerpPosition(const builtin_interfaces::msg::Time &) const;
+  float getLerpVelocity(const builtin_interfaces::msg::Time &) const;
+  float getLerpEffort(const builtin_interfaces::msg::Time &) const;
 
-  const Points & points();
+  const Points & points() const;
 
   SingleJointTrajectoryPoints & operator=(const SingleJointTrajectoryPoints &);
 

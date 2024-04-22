@@ -46,6 +46,12 @@ cybergear_socketcan_driver_node:
     default_value: cybergear
     validation:
       not_empty<>:
+  command_topic_type:
+    type: string
+    default_value: trajectory
+    validation:
+      one_of<>: [[trajectory, setpoint]]
+      not_empty<>:
   # TODO
   #wait_power_on:
   #  type: bool

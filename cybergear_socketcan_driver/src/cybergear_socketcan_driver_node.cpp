@@ -54,8 +54,10 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
   m_packet(nullptr),
   m_last_subscribe_joint_state(nullptr),
   m_last_subscribe_can_frame(nullptr),
+  m_last_subscribe_setpoint(nullptr),
   m_can_frame_subscriber(nullptr),
   m_joint_trajectory_subscriber(nullptr),
+  m_joint_setpoint_subscriber(nullptr),
   m_can_frame_publisher(nullptr),
   m_joint_state_publisher(nullptr),
   m_joint_temperature_publisher(nullptr),
@@ -111,7 +113,8 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
     std::bind(
       &CybergearSocketCanDriverNode::canFrameDiagnosricsCallback,
       this,
-      std::placeholders::_1));
+      std::placeholders::_1
+  ));
 
   m_can_frame_subscriber = this->create_subscription<can_msgs::msg::Frame>(
     "from_can_bus",
@@ -120,17 +123,29 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
       &CybergearSocketCanDriverNode::subscribeCanFrameCallback,
       this,
       std::placeholders::_1
-    )
-  );
-  m_joint_trajectory_subscriber = this->create_subscription<trajectory_msgs::msg::JointTrajectory>(
-    "joint_trajectory",
-    3,
-    std::bind(
-      &CybergearSocketCanDriverNode::subscribeJointTrajectoryCallback,
-      this,
-      std::placeholders::_1
-    )
-  );
+  ));
+
+  if (m_params->command_topic_type == "trajectory") {
+    m_joint_trajectory_subscriber =
+      this->create_subscription<trajectory_msgs::msg::JointTrajectory>(
+      "joint_trajectory",
+      3,
+      std::bind(
+        &CybergearSocketCanDriverNode::subscribeJointTrajectoryCallback,
+        this,
+        std::placeholders::_1
+      ));
+  } else if (m_params->command_topic_type == "setpoint") {
+    m_joint_setpoint_subscriber =
+      this->create_subscription<cybergear_driver_msgs::msg::SetpointStamped>(
+      "~/joint_setpoint",
+      2,
+      std::bind(
+        &CybergearSocketCanDriverNode::subscribeJointSetpointCallback,
+        this,
+        std::placeholders::_1
+      ));
+  }
 
   const unsigned int send_duration_milliseconds = 1e3 / m_params->send_frequency;
   const unsigned int update_param_duration_milliseconds = 1e3 / m_params->update_param_frequency;
@@ -149,8 +164,7 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
       this,
       std::placeholders::_1,
       std::placeholders::_2
-    )
-  );
+  ));
 }
 
 CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(const rclcpp::NodeOptions & node_options)
@@ -171,16 +185,20 @@ cybergear_socketcan_driver_node::Params & CybergearSocketCanDriverNode::params()
   return *m_params;
 }
 
-void CybergearSocketCanDriverNode::procFeedbackPacketCallback(const can_msgs::msg::Frame &) {}
+void CybergearSocketCanDriverNode::procFeedbackPacketCallback(
+  const can_msgs::msg::Frame &) {}
 void CybergearSocketCanDriverNode::procFeedbackJointStateCallback(
   const sensor_msgs::msg::JointState &) {}
 void CybergearSocketCanDriverNode::procFeedbackTemperatureCallabck(
   const sensor_msgs::msg::Temperature &) {}
 
-void CybergearSocketCanDriverNode::sendCanFrameCallback(can_msgs::msg::Frame & msg)
-{
-  msg.id = m_packet->frameId().getFeedbackId();
-}
+void CybergearSocketCanDriverNode::sendCanFrameFromTrajectoryCallback(
+  can_msgs::msg::Frame &,
+  const SingleJointTrajectoryPoints &) {}
+
+void CybergearSocketCanDriverNode::sendCanFrameFromSetpointCallback(
+  can_msgs::msg::Frame &,
+  const cybergear_driver_msgs::msg::SetpointStamped &) {}
 
 void CybergearSocketCanDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame & msg)
 {
@@ -188,9 +206,6 @@ void CybergearSocketCanDriverNode::sendChangeRunModeCallback(can_msgs::msg::Fram
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
   msg.id = can_frame->id;
 }
-
-void CybergearSocketCanDriverNode::subscribeJointTrajectoryPointCallback(
-  const SingleJointTrajectoryPoints::SharedPtr &) {}
 
 // TODO(Naoki Takahashi) perse read ram parameter
 void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
@@ -244,8 +259,13 @@ void CybergearSocketCanDriverNode::subscribeJointTrajectoryCallback(
     if (m_last_subscribe_joint_state) {
       m_single_joint_trajectory->initTrajectoryPoint(*m_last_subscribe_joint_state);
     }
-    subscribeJointTrajectoryPointCallback(m_single_joint_trajectory);
   }
+}
+
+void CybergearSocketCanDriverNode::subscribeJointSetpointCallback(
+  const cybergear_driver_msgs::msg::SetpointStamped::ConstSharedPtr & msg)
+{
+  m_last_subscribe_setpoint = msg;
 }
 
 void CybergearSocketCanDriverNode::sendCanFrameTimerCallback()
@@ -265,7 +285,13 @@ void CybergearSocketCanDriverNode::sendCanFrameTimerCallback()
   auto msg = std::make_unique<can_msgs::msg::Frame>();
   setDefaultCanFrame(msg);
 
-  sendCanFrameCallback(*msg);
+  if (m_last_subscribe_setpoint) {
+    sendCanFrameFromSetpointCallback(*msg, *m_last_subscribe_setpoint);
+  } else if (m_single_joint_trajectory) {
+    sendCanFrameFromTrajectoryCallback(*msg, *m_single_joint_trajectory);
+  } else {
+    msg->id = m_packet->frameId().getFeedbackId();
+  }
   m_can_frame_publisher->publish(std::move(msg));
   m_recived_can_msg = false;
 }
@@ -285,6 +311,15 @@ void CybergearSocketCanDriverNode::enableTorqueServiceCallback(
   const std_srvs::srv::SetBool::Response::SharedPtr & response)
 {
   RCLCPP_INFO(this->get_logger(), "Calling enableTorqueServiceCallback");
+
+  // Prevent abrupt behavior during torque switching
+  if (m_last_subscribe_setpoint) {
+    m_last_subscribe_setpoint.reset();
+  }
+  if (m_single_joint_trajectory) {
+    m_single_joint_trajectory.reset();
+  }
+  sendResetTorque();
 
   sendChangeRunMode();
 
