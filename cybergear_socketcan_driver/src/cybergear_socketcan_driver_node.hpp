@@ -57,9 +57,6 @@ protected:
   virtual void procFeedbackJointStateCallback(const sensor_msgs::msg::JointState &);
   virtual void procFeedbackTemperatureCallabck(const sensor_msgs::msg::Temperature &);
 
-  //! @todo remove
-  virtual void sendCanFrameCallback(can_msgs::msg::Frame &);
-
   virtual void sendCanFrameFromTrajectoryCallback(
     can_msgs::msg::Frame &,
     const SingleJointTrajectoryPoints &);
@@ -67,10 +64,6 @@ protected:
     can_msgs::msg::Frame &,
     const cybergear_driver_msgs::msg::SetpointStamped &);
   virtual void sendChangeRunModeCallback(can_msgs::msg::Frame &);
-
-  //! @todo remove
-  virtual void subscribeJointTrajectoryPointCallback(
-    const SingleJointTrajectoryPoints::SharedPtr &);
 
 private:
   bool m_recived_can_msg;

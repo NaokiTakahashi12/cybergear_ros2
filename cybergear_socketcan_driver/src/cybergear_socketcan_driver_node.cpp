@@ -192,8 +192,6 @@ void CybergearSocketCanDriverNode::procFeedbackJointStateCallback(
 void CybergearSocketCanDriverNode::procFeedbackTemperatureCallabck(
   const sensor_msgs::msg::Temperature &) {}
 
-void CybergearSocketCanDriverNode::sendCanFrameCallback(can_msgs::msg::Frame &) {}
-
 void CybergearSocketCanDriverNode::sendCanFrameFromTrajectoryCallback(
   can_msgs::msg::Frame &,
   const SingleJointTrajectoryPoints &) {}
@@ -208,9 +206,6 @@ void CybergearSocketCanDriverNode::sendChangeRunModeCallback(can_msgs::msg::Fram
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
   msg.id = can_frame->id;
 }
-
-void CybergearSocketCanDriverNode::subscribeJointTrajectoryPointCallback(
-  const SingleJointTrajectoryPoints::SharedPtr &) {}
 
 // TODO(Naoki Takahashi) perse read ram parameter
 void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
