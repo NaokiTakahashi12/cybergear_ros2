@@ -312,6 +312,15 @@ void CybergearSocketCanDriverNode::enableTorqueServiceCallback(
 {
   RCLCPP_INFO(this->get_logger(), "Calling enableTorqueServiceCallback");
 
+  // Prevent abrupt behavior during torque switching
+  if (m_last_subscribe_setpoint) {
+    m_last_subscribe_setpoint.reset();
+  }
+  if (m_single_joint_trajectory) {
+    m_single_joint_trajectory.reset();
+  }
+  sendResetTorque();
+
   sendChangeRunMode();
 
   if (request->data) {
