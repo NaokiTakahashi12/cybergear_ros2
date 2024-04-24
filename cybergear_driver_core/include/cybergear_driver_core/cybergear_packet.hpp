@@ -160,6 +160,14 @@ public:
     return createMoveCommand(param);
   }
 
+  CanFrameUniquePtr createZeroPosition()
+  {
+    auto can_frame = std::make_unique<CanFrame>();
+    can_frame->data[0] = 1;
+    can_frame->id = m_frame_id->getZeroPositionId();
+    return can_frame;
+  }
+
   CanFrameUniquePtr createPositionCommand(const float position)
   {
     const auto param = m_anguler_position_converter->toFourBytes(position);

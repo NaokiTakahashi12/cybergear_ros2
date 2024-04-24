@@ -112,6 +112,11 @@ public:
     return frameId(
       m_device_id, commands::RESET_TORQUE, m_primary_id);
   }
+  uint32_t getZeroPositionId()
+  {
+    return frameId(
+      m_device_id, commands::ZEROING, m_primary_id);
+  }
   uint32_t getReadParameterId()
   {
     return frameId(
