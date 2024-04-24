@@ -64,6 +64,7 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
   m_send_can_frame_timer(nullptr),
   m_update_parameter_timer(nullptr),
   m_enable_torque_service(nullptr),
+  m_zero_position_service(nullptr),
   m_diagnostic_updater(nullptr),
   m_param_listener(nullptr),
   m_params(nullptr),
@@ -161,6 +162,14 @@ CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
     "~/enable_torque",
     std::bind(
       &CybergearSocketCanDriverNode::enableTorqueServiceCallback,
+      this,
+      std::placeholders::_1,
+      std::placeholders::_2
+  ));
+  m_zero_position_service = this->create_service<std_srvs::srv::Trigger>(
+    "~/zero_position",
+    std::bind(
+      &CybergearSocketCanDriverNode::zeroPositionServiceCallback,
       this,
       std::placeholders::_1,
       std::placeholders::_2
@@ -334,6 +343,14 @@ void CybergearSocketCanDriverNode::enableTorqueServiceCallback(
   RCLCPP_INFO_STREAM(this->get_logger(), response->message);
 }
 
+void CybergearSocketCanDriverNode::zeroPositionServiceCallback(
+  const std_srvs::srv::Trigger::Request::ConstSharedPtr &,
+  const std_srvs::srv::Trigger::Response::ConstSharedPtr &)
+{
+  RCLCPP_INFO(this->get_logger(), "Calling zeroPositionServiceCallback");
+  sendZeroPosition();
+}
+
 // TODO(Naoki Takahashi): more information
 void CybergearSocketCanDriverNode::canFrameDiagnosricsCallback(
   diagnostic_updater::DiagnosticStatusWrapper & diag_status)
@@ -461,6 +478,16 @@ void CybergearSocketCanDriverNode::sendFeedbackRequst()
   auto msg = std::make_unique<can_msgs::msg::Frame>();
   setDefaultCanFrame(msg);
   msg->id = m_packet->frameId().getFeedbackId();
+  m_can_frame_publisher->publish(std::move(msg));
+}
+
+void CybergearSocketCanDriverNode::sendZeroPosition()
+{
+  auto msg = std::make_unique<can_msgs::msg::Frame>();
+  setDefaultCanFrame(msg);
+  const auto can_frame = m_packet->createZeroPosition();
+  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg->data.begin());
+  msg->id = can_frame->id;
   m_can_frame_publisher->publish(std::move(msg));
 }
 }  // namespace cybergear_socketcan_driver

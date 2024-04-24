@@ -35,6 +35,7 @@
 #include <can_msgs/msg/frame.hpp>
 #include <cybergear_driver_msgs/msg/setpoint_stamped.hpp>
 #include <std_srvs/srv/set_bool.hpp>
+#include <std_srvs/srv/trigger.hpp>
 #include <cybergear_socketcan_driver_node_params.hpp>
 #include <cybergear_driver_core/cybergear_driver_core.hpp>
 #include <cybergear_socketcan_driver/single_joint_trajectory_points.hpp>
@@ -89,6 +90,7 @@ private:
   rclcpp::TimerBase::SharedPtr m_update_parameter_timer;
 
   rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr m_enable_torque_service;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr m_zero_position_service;
 
   std::unique_ptr<diagnostic_updater::Updater> m_diagnostic_updater;
 
@@ -107,6 +109,10 @@ private:
   void enableTorqueServiceCallback(
     const std_srvs::srv::SetBool::Request::ConstSharedPtr & request,
     const std_srvs::srv::SetBool::Response::SharedPtr & response);
+  void zeroPositionServiceCallback(
+    const std_srvs::srv::Trigger::Request::ConstSharedPtr & request,
+    const std_srvs::srv::Trigger::Response::ConstSharedPtr & response);
+
 
   void canFrameDiagnosricsCallback(diagnostic_updater::DiagnosticStatusWrapper &);
 
@@ -118,5 +124,6 @@ private:
   void sendEnableTorque();
   void sendResetTorque();
   void sendFeedbackRequst();
+  void sendZeroPosition();
 };
 }  // namespace cybergear_socketcan_driver
