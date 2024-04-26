@@ -22,34 +22,40 @@
 
 cybergear_socketcan_driver_node:
   primary_id:
+    description: Identifier parameter for distinguishing the sender in CAN communication
     type: int
     default_value: 0
     validation:
       bounds<>: [0, 255]
   device_id:
+    description: Identifier parameter for specifying the recipient in CAN communication (CyberGear ID)
     type: int
     default_value: 127
     validation:
       bounds<>: [0, 255]
   send_frequency:
+    description: Transmission interval parameter for CAN frame (Hz)
     type: double
     default_value: 16.0
     read_only: true
     validation:
       gt<>: 0.0
   update_param_frequency:
+    description: Cycle for reflecting parameter changes during node execution (Hz)
     type: double
     default_value: 1.0
     read_only: true
     validation:
       gt<>: 0.0
   joint_name:
+    description: Joint name parameter used in JointTrajectory and JointState
     type: string
     default_value: cybergear
     read_only: true
     validation:
       not_empty<>:
   command_topic_type:
+    description: Parameter for selecting either JointTrajectory or single target
     type: string
     default_value: trajectory
     read_only: true
@@ -62,63 +68,77 @@ cybergear_socketcan_driver_node:
   #  default_value: false
   pid_gain:
     kp:
+      description: Proportional gain parameter for PID control
       type: double
       default_value: 0.3
     kd:
+      description: Derivative gain parameter for PID control
       type: double
       default_value: 0.0475
   torque_constant:
+    description: Torque constant used in current control
     type: double
     default_value: 0.87
     read_only: true
   temperature:
     scale:
+      description: DO NOT CHANGE; CyberGear communication data conversion factor to Celsius
       type: double
       default_value: 0.1
       read_only: true
   anguler_position:
     max:
+      description: DO NOT CHANGE; Upper limit of position during CyberGear communication
       type: double
       default_value: 12.56637061
       read_only: true
     min:
+      description: DO NOT CHANGE; Lower limit of position during CyberGear communication
       type: double
       default_value: -12.56637061
       read_only: true
   anguler_velocity:
     max:
+      description: DO NOT CHANGE; Upper limit of velocity during CyberGear communication
       type: double
       default_value: 30.0
       read_only: true
     min:
+      description: DO NOT CHANGE; Lower limit of velocity during CyberGear communication
       type: double
       default_value: -30.0
       read_only: true
   anguler_effort:
     max:
+      description: DO NOT CHANGE; Upper limit of effort during CyberGear communication
       type: double
       default_value: 12.0
       read_only: true
     min:
+      description: DO NOT CHANGE; Lower limit of effort during CyberGear communication
       type: double
       default_value: -12.0
       read_only: true
   pid_gain_range:
     kp:
       max:
+        description: DO NOT CHANGE; Upper limit of proportional gain during CyberGear communication
         type: double
         default_value: 500.0
         read_only: true
       min:
+        description: DO NOT CHANGE; Lower limit of proportional gain during CyberGear communication
         type: double
         default_value: 0.0
         read_only: true
     kd:
       max:
+        description: DO NOT CHANGE; Upper limit of derivative gain during CyberGear communication
         type: double
         default_value: 5.0
         read_only: true
       min:
+        description: DO NOT CHANGE; Lower limit of derivative gain during CyberGear communication
         type: double
         default_value: 0.0
         read_only: true
