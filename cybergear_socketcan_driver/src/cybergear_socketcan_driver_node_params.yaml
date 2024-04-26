@@ -34,21 +34,25 @@ cybergear_socketcan_driver_node:
   send_frequency:
     type: double
     default_value: 16.0
+    read_only: true
     validation:
       gt<>: 0.0
   update_param_frequency:
     type: double
     default_value: 1.0
+    read_only: true
     validation:
       gt<>: 0.0
   joint_name:
     type: string
     default_value: cybergear
+    read_only: true
     validation:
       not_empty<>:
   command_topic_type:
     type: string
     default_value: trajectory
+    read_only: true
     validation:
       one_of<>: [[trajectory, setpoint]]
       not_empty<>:
@@ -56,46 +60,6 @@ cybergear_socketcan_driver_node:
   #wait_power_on:
   #  type: bool
   #  default_value: false
-  temperature:
-    scale:
-      type: double
-      default_value: 0.1
-  anguler_position:
-    max:
-      type: double
-      default_value: 12.56637061
-    min:
-      type: double
-      default_value: -12.56637061
-  anguler_velocity:
-    max:
-      type: double
-      default_value: 30.0
-    min:
-      type: double
-      default_value: -30.0
-  anguler_effort:
-    max:
-      type: double
-      default_value: 12.0
-    min:
-      type: double
-      default_value: -12.0
-  pid_gain_range:
-    kp:
-      max:
-        type: double
-        default_value: 500.0
-      min:
-        type: double
-        default_value: 0.0
-    kd:
-      max:
-        type: double
-        default_value: 5.0
-      min:
-        type: double
-        default_value: 0.0
   pid_gain:
     kp:
       type: double
@@ -106,3 +70,55 @@ cybergear_socketcan_driver_node:
   torque_constant:
     type: double
     default_value: 0.87
+    read_only: true
+  temperature:
+    scale:
+      type: double
+      default_value: 0.1
+      read_only: true
+  anguler_position:
+    max:
+      type: double
+      default_value: 12.56637061
+      read_only: true
+    min:
+      type: double
+      default_value: -12.56637061
+      read_only: true
+  anguler_velocity:
+    max:
+      type: double
+      default_value: 30.0
+      read_only: true
+    min:
+      type: double
+      default_value: -30.0
+      read_only: true
+  anguler_effort:
+    max:
+      type: double
+      default_value: 12.0
+      read_only: true
+    min:
+      type: double
+      default_value: -12.0
+      read_only: true
+  pid_gain_range:
+    kp:
+      max:
+        type: double
+        default_value: 500.0
+        read_only: true
+      min:
+        type: double
+        default_value: 0.0
+        read_only: true
+    kd:
+      max:
+        type: double
+        default_value: 5.0
+        read_only: true
+      min:
+        type: double
+        default_value: 0.0
+        read_only: true
