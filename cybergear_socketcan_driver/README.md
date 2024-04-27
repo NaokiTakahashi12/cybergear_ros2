@@ -84,12 +84,19 @@ In addition to the ROS 2 core packages, this package depends on the following:
 The command values transmitted to CyberGear for each node are shown below.
 
 + `cybergear_default_driver_node`
+
   position, velocity, effort
+
 + `cybergear_position_driver_node`
+
   position
+
 + `cybergear_velocity_driver_node`
+
   velocity
+
 + `cybergear_torque_driver_node`
+
   effort
 
 
