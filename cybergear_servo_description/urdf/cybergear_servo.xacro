@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<!--
+MIT License
+Copyright (c) 2024 Naoki Takahashi
+-->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="cybergear_servo" params="name parent *origin">
+    <joint name="${name}_base_joint" type="fixed">
+      <xacro:insert_block name="origin"/>
+      <parent link="${parent}"/>
+      <child link="${name}_cybergear_link"/>
+    </joint>
+    <link name="${name}_cybergear_link">
+      <visual>
+        <geometry>
+          <mesh filename="package://cybergear_servo_description/meshes/cybergear_body.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 0.008"/>
+        <geometry>
+          <cylinder length="0.035" radius="0.042"/>
+        </geometry>
+      </collision>
+      <!-- TODO
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <mass value="0.2528"/>
+      </inertial>
+      -->
+    </link>
+    <joint name="${name}_table_joint" type="revolute">
+      <origin rpy="0 0 0" xyz="0 0 0.028"/>
+      <parent link="${name}_cybergear_link"/>
+      <child link="${name}_cybergear_table_link"/>
+      <axis xyz="0 0 1"/>
+      <limit effort="12" velocity="30" lower="-12.565" upper="12.565"/>
+    </joint>
+    <link name="${name}_cybergear_table_link">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 -0.028"/>
+        <geometry>
+          <mesh filename="package://cybergear_servo_description/meshes/cybergear_table.stl" scale="0.001 0.001 0.001"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 -0.005"/>
+        <geometry>
+          <cylinder length="0.01" radius="0.016"/>
+        </geometry>
+      </collision>
+      <!-- TODO
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <mass value="0.0632"/>
+      </inertial>
+      -->
+    </link>
+  </xacro:macro>
+</robot>
