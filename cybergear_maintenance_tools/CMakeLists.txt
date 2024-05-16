@@ -10,6 +10,35 @@ find_package(ament_cmake REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+find_package(cybergear_driver_core REQUIRED)
+
+ament_auto_find_build_dependencies()
+
+generate_parameter_library(search_cybergear_id_node_parameters
+    src/search_cybergear_id_node_parameters.yaml
+)
+
+ament_auto_add_library(${PROJECT_NAME}_components SHARED
+  src/search_cybergear_id_node.cpp
+)
+target_link_libraries(${PROJECT_NAME}_components
+  search_cybergear_id_node_parameters
+  cybergear_driver_core::cybergear_driver_core
+)
+
+rclcpp_components_register_node(${PROJECT_NAME}_components
+  PLUGIN "cybergear_maintenance_tools::SearchCybergearIdNode"
+  EXECUTABLE search_cybergear_id_node
+)
+
+install(
+  TARGETS
+    ${PROJECT_NAME}_components
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
