@@ -16,20 +16,29 @@ find_package(cybergear_driver_core REQUIRED)
 ament_auto_find_build_dependencies()
 
 generate_parameter_library(search_cybergear_id_node_parameters
-    src/search_cybergear_id_node_parameters.yaml
+  src/search_cybergear_id_node_parameters.yaml
+)
+generate_parameter_library(change_cybergear_id_node_parameters
+  src/change_cybergear_id_node_parameters.yaml
 )
 
 ament_auto_add_library(${PROJECT_NAME}_components SHARED
   src/search_cybergear_id_node.cpp
+  src/change_cybergear_id_node.cpp
 )
 target_link_libraries(${PROJECT_NAME}_components
   search_cybergear_id_node_parameters
   cybergear_driver_core::cybergear_driver_core
+  change_cybergear_id_node_parameters
 )
 
 rclcpp_components_register_node(${PROJECT_NAME}_components
   PLUGIN "cybergear_maintenance_tools::SearchCybergearIdNode"
   EXECUTABLE search_cybergear_id_node
+)
+rclcpp_components_register_node(${PROJECT_NAME}_components
+  PLUGIN "cybergear_maintenance_tools::ChangeCybergearIdNode"
+  EXECUTABLE change_cybergear_id_node
 )
 
 install(
