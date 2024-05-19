@@ -51,20 +51,32 @@ public:
   }
   ~CybergearFrameId() {}
 
+  bool isInfo(const uint32_t id)
+  {
+    const uint8_t frame_type_id = (id & FRAME_TYPE_MASK) >> FRAME_TYPE_OFFSET;
+    return frame_type_id == commands::INFO;
+  }
+
   bool isFeedback(const uint32_t id)
   {
     const uint8_t frame_type_id = (id & FRAME_TYPE_MASK) >> FRAME_TYPE_OFFSET;
     return frame_type_id == commands::FEEDBACK;
   }
+
   bool isFault(const uint32_t id)
   {
     const uint8_t frame_type_id = (id & FRAME_TYPE_MASK) >> FRAME_TYPE_OFFSET;
     return frame_type_id == commands::FAULT_FEEDBACK;
   }
 
+  uint8_t getFrameId(const uint32_t id)
+  {
+    return (id & DEVICE_ID_MASK) >> DEVICE_ID_OFFSET;
+  }
+
   bool isDevice(const uint32_t id)
   {
-    return ((id & DEVICE_ID_MASK) >> DEVICE_ID_OFFSET) == m_device_id;
+    return getFrameId(id) == m_device_id;
   }
 
   bool hasError(const uint32_t id)
@@ -77,51 +89,72 @@ public:
     const uint8_t mode = (id & FEEDBACK_MODE_STATE_MASK) >> MODE_STATE_OFFSET;
     return mode == feedback_mode_state::RESET;
   }
+
   bool isCaliMode(const uint32_t id)
   {
     const uint8_t mode = (id & FEEDBACK_MODE_STATE_MASK) >> MODE_STATE_OFFSET;
     return mode == feedback_mode_state::CALI;
   }
+
   bool isRunningMode(const uint32_t id)
   {
     const uint8_t mode = (id & FEEDBACK_MODE_STATE_MASK) >> MODE_STATE_OFFSET;
     return mode == feedback_mode_state::RUN;
   }
-  uint32_t getInfoId()
+
+  uint32_t getInfoId(const uint8_t device_id)
   {
     return frameId(
-      m_device_id, commands::INFO, m_primary_id);
+      device_id, commands::INFO, m_primary_id);
   }
+
+  uint32_t getInfoId()
+  {
+    return getInfoId(m_device_id);
+  }
+
   uint32_t getCommandId(const uint16_t effort_limit)
   {
     return frameId(
       m_device_id, commands::COMMAND, effort_limit);
   }
+
   uint32_t getFeedbackId()
   {
     return frameId(
       m_device_id, commands::FEEDBACK, m_primary_id);
   }
+
   uint32_t getEnableTorqueId()
   {
     return frameId(
       m_device_id, commands::ENABLE_TORQUE, m_primary_id);
   }
+
   uint32_t getResetTorqueId()
   {
     return frameId(
       m_device_id, commands::RESET_TORQUE, m_primary_id);
   }
+
   uint32_t getZeroPositionId()
   {
     return frameId(
       m_device_id, commands::ZEROING, m_primary_id);
   }
+
+  uint32_t getChangeDeviceId(const uint8_t change_id)
+  {
+    return frameId(
+      m_device_id, commands::CHANGE_DEVICE_ID, change_id << 8 | m_primary_id);
+  }
+
   uint32_t getReadParameterId()
   {
     return frameId(
       m_device_id, commands::READ_PARAMETER, m_primary_id);
   }
+
   uint32_t getWriteParameterId()
   {
     return frameId(
