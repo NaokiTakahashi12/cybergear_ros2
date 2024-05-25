@@ -39,12 +39,12 @@ public:
 
   void setScale(const float scale)
   {
-    m_scale = scale;
+    scale_ = scale;
   }
 
   uint16_t toDoubleByte(const float value)
   {
-    return static_cast<uint16_t>(value / m_scale);
+    return static_cast<uint16_t>(value / scale_);
   }
 
   std::array<uint8_t, 2> toTwoBytes(const float value)
@@ -60,10 +60,10 @@ public:
   float toFloat(const std::array<uint8_t, Size> & data, const unsigned int offset) const
   {
     const uint16_t raw_data = data[0 + offset] << 8 | data[1 + offset];
-    return m_scale * static_cast<float>(raw_data);
+    return scale_ * static_cast<float>(raw_data);
   }
 
 private:
-  float m_scale;
+  float scale_;
 };
 }  // namespace cybergear_driver_core

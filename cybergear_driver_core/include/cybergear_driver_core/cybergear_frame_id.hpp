@@ -42,8 +42,8 @@ private:
 
 public:
   explicit CybergearFrameId(const uint8_t device_id, const uint8_t primary_id)
-  : m_device_id(device_id),
-    m_primary_id(primary_id)
+  : device_id_(device_id),
+    primary_id_(primary_id)
   {
     if (device_id == primary_id) {
       throw std::invalid_argument("Please set different id: device vs primary(host)");
@@ -76,7 +76,7 @@ public:
 
   bool isDevice(const uint32_t id)
   {
-    return getFrameId(id) == m_device_id;
+    return getFrameId(id) == device_id_;
   }
 
   bool hasError(const uint32_t id)
@@ -105,65 +105,65 @@ public:
   uint32_t getInfoId(const uint8_t device_id)
   {
     return frameId(
-      device_id, commands::INFO, m_primary_id);
+      device_id, commands::INFO, primary_id_);
   }
 
   uint32_t getInfoId()
   {
-    return getInfoId(m_device_id);
+    return getInfoId(device_id_);
   }
 
   uint32_t getCommandId(const uint16_t effort_limit)
   {
     return frameId(
-      m_device_id, commands::COMMAND, effort_limit);
+      device_id_, commands::COMMAND, effort_limit);
   }
 
   uint32_t getFeedbackId()
   {
     return frameId(
-      m_device_id, commands::FEEDBACK, m_primary_id);
+      device_id_, commands::FEEDBACK, primary_id_);
   }
 
   uint32_t getEnableTorqueId()
   {
     return frameId(
-      m_device_id, commands::ENABLE_TORQUE, m_primary_id);
+      device_id_, commands::ENABLE_TORQUE, primary_id_);
   }
 
   uint32_t getResetTorqueId()
   {
     return frameId(
-      m_device_id, commands::RESET_TORQUE, m_primary_id);
+      device_id_, commands::RESET_TORQUE, primary_id_);
   }
 
   uint32_t getZeroPositionId()
   {
     return frameId(
-      m_device_id, commands::ZEROING, m_primary_id);
+      device_id_, commands::ZEROING, primary_id_);
   }
 
   uint32_t getChangeDeviceId(const uint8_t change_id)
   {
     return frameId(
-      m_device_id, commands::CHANGE_DEVICE_ID, change_id << 8 | m_primary_id);
+      device_id_, commands::CHANGE_DEVICE_ID, change_id << 8 | primary_id_);
   }
 
   uint32_t getReadParameterId()
   {
     return frameId(
-      m_device_id, commands::READ_PARAMETER, m_primary_id);
+      device_id_, commands::READ_PARAMETER, primary_id_);
   }
 
   uint32_t getWriteParameterId()
   {
     return frameId(
-      m_device_id, commands::WRITE_PARAMETER, m_primary_id);
+      device_id_, commands::WRITE_PARAMETER, primary_id_);
   }
 
 private:
-  const uint8_t m_device_id;
-  const uint8_t m_primary_id;
+  const uint8_t device_id_;
+  const uint8_t primary_id_;
 
   uint32_t frameId(const uint8_t dev_id, const uint8_t cmd_id, const uint16_t opt)
   {

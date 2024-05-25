@@ -47,12 +47,12 @@ protected:
   void sendChangeRunModeCallback(can_msgs::msg::Frame &) final;
 
 private:
-  float m_last_sense_anguler_position;
+  float last_sense_anguler_position_;
 };
 
 CybergearDefaultDriverNode::CybergearDefaultDriverNode(const rclcpp::NodeOptions & node_options)
 : CybergearSocketCanDriverNode("cybergear_default_driver", node_options),
-  m_last_sense_anguler_position(0.0f) {}
+  last_sense_anguler_position_(0.0f) {}
 
 CybergearDefaultDriverNode::~CybergearDefaultDriverNode() {}
 
@@ -62,7 +62,7 @@ void CybergearDefaultDriverNode::procFeedbackJointStateCallback(
   if (msg.position.size() < 1) {
     return;
   }
-  m_last_sense_anguler_position = msg.position[0];
+  last_sense_anguler_position_ = msg.position[0];
 }
 
 void CybergearDefaultDriverNode::sendCanFrameFromTrajectoryCallback(
@@ -76,7 +76,7 @@ void CybergearDefaultDriverNode::sendCanFrameFromTrajectoryCallback(
     move_param.velocity = single_joint_trajectory.getLerpVelocity(this->get_clock()->now());
     move_param.effort = single_joint_trajectory.getLerpEffort(this->get_clock()->now());
   } else {
-    move_param.position = m_last_sense_anguler_position;
+    move_param.position = last_sense_anguler_position_;
     move_param.velocity = 0.0f;
     move_param.effort = 0.0f;
   }

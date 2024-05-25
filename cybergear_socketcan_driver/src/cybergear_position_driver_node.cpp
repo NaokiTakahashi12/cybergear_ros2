@@ -49,12 +49,12 @@ protected:
   void sendChangeRunModeCallback(can_msgs::msg::Frame &) final;
 
 private:
-  float m_last_sense_anguler_position;
+  float last_sense_anguler_position_;
 };
 
 CybergearPositionDriverNode::CybergearPositionDriverNode(const rclcpp::NodeOptions & node_options)
 : CybergearSocketCanDriverNode("cybergear_position_driver", node_options),
-  m_last_sense_anguler_position(0) {}
+  last_sense_anguler_position_(0) {}
 
 CybergearPositionDriverNode::~CybergearPositionDriverNode() {}
 
@@ -64,7 +64,7 @@ void CybergearPositionDriverNode::procFeedbackJointStateCallback(
   if (msg.position.size() < 1) {
     return;
   }
-  m_last_sense_anguler_position = msg.position[0];
+  last_sense_anguler_position_ = msg.position[0];
 }
 
 void CybergearPositionDriverNode::sendCanFrameFromTrajectoryCallback(
@@ -76,7 +76,7 @@ void CybergearPositionDriverNode::sendCanFrameFromTrajectoryCallback(
   if (0 < single_joint_trajectory.points().size()) {
     position = single_joint_trajectory.getLerpPosition(this->get_clock()->now());
   } else {
-    position = m_last_sense_anguler_position;
+    position = last_sense_anguler_position_;
   }
   const auto can_frame = this->packet().createPositionCommand(position);
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());

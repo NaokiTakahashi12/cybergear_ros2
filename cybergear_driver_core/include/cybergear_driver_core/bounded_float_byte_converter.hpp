@@ -41,20 +41,20 @@ public:
 
   void setRange(const float max, const float min)
   {
-    m_max = max;
-    m_min = min;
+    max_ = max;
+    min_ = min;
     updateRange();
   }
 
   float toClampedFloat(const float value)
   {
-    return std::max(m_min, std::min(m_max, value));
+    return std::max(min_, std::min(max_, value));
   }
 
   uint16_t toDoubleByte(const float value)
   {
     const float clamped_value = toClampedFloat(value);
-    return static_cast<uint16_t>((clamped_value - m_min) * m_byte_scale);
+    return static_cast<uint16_t>((clamped_value - min_) * byte_scale_);
   }
 
   std::array<uint8_t, 2> toTwoBytes(const float value)
@@ -82,21 +82,21 @@ public:
   float toFloat(const std::array<uint8_t, Size> & data, const unsigned int offset) const
   {
     const uint16_t raw_data = data[0 + offset] << 8 | data[1 + offset];
-    return m_float_scale * static_cast<float>(raw_data) + m_min;
+    return float_scale_ * static_cast<float>(raw_data) + min_;
   }
 
 private:
-  float m_max, m_min;
-  float m_float_range;
-  float m_float_scale, m_byte_scale;
+  float max_, min_;
+  float float_range_;
+  float float_scale_, byte_scale_;
 
   void updateRange()
   {
-    m_float_range = m_max - m_min;
-    m_float_scale = m_float_range / static_cast<float>(0xffff);
-    m_byte_scale = static_cast<float>(0xffff) / m_float_range;
+    float_range_ = max_ - min_;
+    float_scale_ = float_range_ / static_cast<float>(0xffff);
+    byte_scale_ = static_cast<float>(0xffff) / float_range_;
 
-    if (m_float_range <= 0) {
+    if (float_range_ <= 0) {
       throw std::invalid_argument("Illigal float range: ZERO or NEGATIVE");
     }
   }

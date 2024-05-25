@@ -32,10 +32,10 @@
 namespace cybergear_socketcan_driver
 {
 SingleJointTrajectoryPoints::SingleJointTrajectoryPoints()
-: m_start_trajectory_point(),
-  m_trajectory_points(),
-  m_start_trajectory_time(),
-  m_trajectory_durations_from_recived()
+: start_trajectory_point_(),
+  trajectory_points_(),
+  start_trajectory_time_(),
+  trajectory_durations_from_recived_()
 {
 }
 
@@ -43,7 +43,7 @@ SingleJointTrajectoryPoints::SingleJointTrajectoryPoints(
   const SingleJointTrajectoryPoints & joint_trajectory)
 {
   if (this != &joint_trajectory) {
-    this->m_trajectory_points = joint_trajectory.m_trajectory_points;
+    this->trajectory_points_ = joint_trajectory.trajectory_points_;
   }
 }
 
@@ -51,15 +51,15 @@ SingleJointTrajectoryPoints::~SingleJointTrajectoryPoints() {}
 
 void SingleJointTrajectoryPoints::reset()
 {
-  m_trajectory_points.clear();
+  trajectory_points_.clear();
 }
 
 void SingleJointTrajectoryPoints::initTrajectoryPoint(
   const sensor_msgs::msg::JointState & joint_state)
 {
-  m_start_trajectory_point.position = joint_state.position[0];
-  m_start_trajectory_point.velocity = joint_state.velocity[0];
-  m_start_trajectory_point.effort = joint_state.effort[0];
+  start_trajectory_point_.position = joint_state.position[0];
+  start_trajectory_point_.velocity = joint_state.velocity[0];
+  start_trajectory_point_.effort = joint_state.effort[0];
 }
 
 void SingleJointTrajectoryPoints::load(
@@ -73,52 +73,52 @@ void SingleJointTrajectoryPoints::load(
   if (joint_index >= joint_trajectory.joint_names.size()) {
     return;
   }
-  m_trajectory_durations_from_recived.resize(joint_trajectory_points_size);
-  m_trajectory_points.resize(joint_trajectory_points_size);
+  trajectory_durations_from_recived_.resize(joint_trajectory_points_size);
+  trajectory_points_.resize(joint_trajectory_points_size);
   int point_index = 0;
 
   for (const auto & point : joint_trajectory.points) {
     if (point.positions.size() > joint_index) {
-      m_trajectory_points[point_index].position = point.positions[joint_index];
+      trajectory_points_[point_index].position = point.positions[joint_index];
     }
     if (point.velocities.size() > joint_index) {
-      m_trajectory_points[point_index].velocity = point.velocities[joint_index];
+      trajectory_points_[point_index].velocity = point.velocities[joint_index];
     }
     if (point.accelerations.size() > joint_index) {
-      m_trajectory_points[point_index].acceleration = point.accelerations[joint_index];
+      trajectory_points_[point_index].acceleration = point.accelerations[joint_index];
     }
     if (point.effort.size() > joint_index) {
-      m_trajectory_points[point_index].effort = point.effort[joint_index];
+      trajectory_points_[point_index].effort = point.effort[joint_index];
     }
-    m_trajectory_points[point_index].time_from_start = point.time_from_start;
+    trajectory_points_[point_index].time_from_start = point.time_from_start;
 
     point_index++;
   }
 
   for (unsigned int i = 0; i < joint_trajectory_points_size; ++i) {
-    m_trajectory_durations_from_recived[i] = 0.0;
+    trajectory_durations_from_recived_[i] = 0.0;
     for (unsigned int j = 0; j <= i; ++j) {
       rclcpp::Duration duration(joint_trajectory.points[j].time_from_start);
-      m_trajectory_durations_from_recived[i] += duration.seconds();
+      trajectory_durations_from_recived_[i] += duration.seconds();
     }
   }
-  m_start_trajectory_time = rclcpp::Time(joint_trajectory.header.stamp);
+  start_trajectory_time_ = rclcpp::Time(joint_trajectory.header.stamp);
 }
 
 float SingleJointTrajectoryPoints::getLerpPosition(const builtin_interfaces::msg::Time & time) const
 {
-  if (m_trajectory_durations_from_recived.empty()) {
+  if (trajectory_durations_from_recived_.empty()) {
     return 0.0f;
   }
   rclcpp::Time control_time(time);
-  const double time_from_recived = (control_time - m_start_trajectory_time).seconds();
+  const double time_from_recived = (control_time - start_trajectory_time_).seconds();
 
-  if (m_trajectory_durations_from_recived.back() < time_from_recived) {
-    return m_trajectory_points.back().position;
+  if (trajectory_durations_from_recived_.back() < time_from_recived) {
+    return trajectory_points_.back().position;
   }
   unsigned int point_index = 0;
 
-  for (const auto & duration : m_trajectory_durations_from_recived) {
+  for (const auto & duration : trajectory_durations_from_recived_) {
     if (duration > time_from_recived) {
       break;
     }
@@ -127,19 +127,19 @@ float SingleJointTrajectoryPoints::getLerpPosition(const builtin_interfaces::msg
   float start_point;
 
   if (point_index == 0) {
-    start_point = m_start_trajectory_point.position;
+    start_point = start_trajectory_point_.position;
   } else {
-    start_point = m_trajectory_points[point_index - 1].position;
+    start_point = trajectory_points_[point_index - 1].position;
   }
-  const float dest_delta = m_trajectory_points[point_index].position - start_point;
+  const float dest_delta = trajectory_points_[point_index].position - start_point;
   const double point_duration = rclcpp::Duration(
-    m_trajectory_points[point_index].time_from_start).seconds();
+    trajectory_points_[point_index].time_from_start).seconds();
   float normalized_duration;
 
   if (point_duration == 0.0) {
     normalized_duration = 1.0;
   } else {
-    const double time_left = m_trajectory_durations_from_recived[point_index] - time_from_recived;
+    const double time_left = trajectory_durations_from_recived_[point_index] - time_from_recived;
     normalized_duration = 1 - (time_left) / point_duration;
   }
   return normalized_duration * dest_delta + start_point;
@@ -147,18 +147,18 @@ float SingleJointTrajectoryPoints::getLerpPosition(const builtin_interfaces::msg
 
 float SingleJointTrajectoryPoints::getLerpVelocity(const builtin_interfaces::msg::Time & time) const
 {
-  if (m_trajectory_durations_from_recived.empty()) {
+  if (trajectory_durations_from_recived_.empty()) {
     return 0.0f;
   }
   rclcpp::Time control_time(time);
-  const double time_from_recived = (control_time - m_start_trajectory_time).seconds();
+  const double time_from_recived = (control_time - start_trajectory_time_).seconds();
 
-  if (m_trajectory_durations_from_recived.back() < time_from_recived) {
-    return m_trajectory_points.back().velocity;
+  if (trajectory_durations_from_recived_.back() < time_from_recived) {
+    return trajectory_points_.back().velocity;
   }
   unsigned int point_index = 0;
 
-  for (const auto & duration : m_trajectory_durations_from_recived) {
+  for (const auto & duration : trajectory_durations_from_recived_) {
     if (duration > time_from_recived) {
       break;
     }
@@ -167,19 +167,19 @@ float SingleJointTrajectoryPoints::getLerpVelocity(const builtin_interfaces::msg
   float start_point;
 
   if (point_index == 0) {
-    start_point = m_start_trajectory_point.velocity;
+    start_point = start_trajectory_point_.velocity;
   } else {
-    start_point = m_trajectory_points[point_index - 1].velocity;
+    start_point = trajectory_points_[point_index - 1].velocity;
   }
-  const float dest_delta = m_trajectory_points[point_index].velocity - start_point;
+  const float dest_delta = trajectory_points_[point_index].velocity - start_point;
   const double point_duration = rclcpp::Duration(
-    m_trajectory_points[point_index].time_from_start).seconds();
+    trajectory_points_[point_index].time_from_start).seconds();
   float normalized_duration;
 
   if (point_duration == 0.0) {
     normalized_duration = 1.0;
   } else {
-    const double time_left = m_trajectory_durations_from_recived[point_index] - time_from_recived;
+    const double time_left = trajectory_durations_from_recived_[point_index] - time_from_recived;
     normalized_duration = 1 - (time_left) / point_duration;
   }
   return normalized_duration * dest_delta + start_point;
@@ -187,18 +187,18 @@ float SingleJointTrajectoryPoints::getLerpVelocity(const builtin_interfaces::msg
 
 float SingleJointTrajectoryPoints::getLerpEffort(const builtin_interfaces::msg::Time & time) const
 {
-  if (m_trajectory_durations_from_recived.empty()) {
+  if (trajectory_durations_from_recived_.empty()) {
     return 0.0f;
   }
   rclcpp::Time control_time(time);
-  const double time_from_recived = (control_time - m_start_trajectory_time).seconds();
+  const double time_from_recived = (control_time - start_trajectory_time_).seconds();
 
-  if (m_trajectory_durations_from_recived.back() < time_from_recived) {
-    return m_trajectory_points.back().effort;
+  if (trajectory_durations_from_recived_.back() < time_from_recived) {
+    return trajectory_points_.back().effort;
   }
   unsigned int point_index = 0;
 
-  for (const auto & duration : m_trajectory_durations_from_recived) {
+  for (const auto & duration : trajectory_durations_from_recived_) {
     if (duration > time_from_recived) {
       break;
     }
@@ -207,19 +207,19 @@ float SingleJointTrajectoryPoints::getLerpEffort(const builtin_interfaces::msg::
   float start_point;
 
   if (point_index == 0) {
-    start_point = m_start_trajectory_point.effort;
+    start_point = start_trajectory_point_.effort;
   } else {
-    start_point = m_trajectory_points[point_index - 1].effort;
+    start_point = trajectory_points_[point_index - 1].effort;
   }
-  const float dest_delta = m_trajectory_points[point_index].effort - start_point;
+  const float dest_delta = trajectory_points_[point_index].effort - start_point;
   const double point_duration = rclcpp::Duration(
-    m_trajectory_points[point_index].time_from_start).seconds();
+    trajectory_points_[point_index].time_from_start).seconds();
   float normalized_duration;
 
   if (point_duration == 0.0) {
     normalized_duration = 1.0;
   } else {
-    const double time_left = m_trajectory_durations_from_recived[point_index] - time_from_recived;
+    const double time_left = trajectory_durations_from_recived_[point_index] - time_from_recived;
     normalized_duration = 1 - (time_left) / point_duration;
   }
   return normalized_duration * dest_delta + start_point;
@@ -227,14 +227,14 @@ float SingleJointTrajectoryPoints::getLerpEffort(const builtin_interfaces::msg::
 
 const SingleJointTrajectoryPoints::Points & SingleJointTrajectoryPoints::points() const
 {
-  return m_trajectory_points;
+  return trajectory_points_;
 }
 
 SingleJointTrajectoryPoints & SingleJointTrajectoryPoints::operator=(
   const SingleJointTrajectoryPoints & joint_trajectory)
 {
   if (this != &joint_trajectory) {
-    this->m_trajectory_points = joint_trajectory.m_trajectory_points;
+    this->trajectory_points_ = joint_trajectory.trajectory_points_;
   }
   return *this;
 }

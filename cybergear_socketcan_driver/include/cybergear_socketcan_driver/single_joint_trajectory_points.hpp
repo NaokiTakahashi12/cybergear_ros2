@@ -61,11 +61,11 @@ public:
   SingleJointTrajectoryPoints & operator=(const SingleJointTrajectoryPoints &);
 
 private:
-  SingleJointTrajectoryPoint m_start_trajectory_point;
-  Points m_trajectory_points;
+  SingleJointTrajectoryPoint start_trajectory_point_;
+  Points trajectory_points_;
 
-  rclcpp::Time m_start_trajectory_time;
-  std::vector<double> m_trajectory_durations_from_recived;
+  rclcpp::Time start_trajectory_time_;
+  std::vector<double> trajectory_durations_from_recived_;
 
   unsigned int getJointIndexFromJointNames(
     const std::string &, const std::vector<std::string> &);
