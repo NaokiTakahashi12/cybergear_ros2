@@ -29,11 +29,12 @@ namespace cybergear_socketcan_driver
 struct SingleJointTrajectoryPoint
 {
   SingleJointTrajectoryPoint()
-  : position(0.0f),
-    velocity(0.0f),
-    acceleration(0.0f),
-    effort(0.0f),
-    time_from_start() {}
+  : position(0.0F),
+    velocity(0.0F),
+    acceleration(0.0F),
+    effort(0.0F)
+
+  {}
 
   float position;
   float velocity;

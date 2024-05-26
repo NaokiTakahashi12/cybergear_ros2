@@ -22,15 +22,15 @@
 
 #pragma once
 
-#include <memory>
-#include <array>
 #include <algorithm>
+#include <array>
+#include <memory>
 
+#include "bounded_float_byte_converter.hpp"
+#include "cybergear_frame_id.hpp"
 #include "cybergear_packet_param.hpp"
 #include "protocol_constant.hpp"
-#include "cybergear_frame_id.hpp"
 #include "scaled_float_byte_converter.hpp"
-#include "bounded_float_byte_converter.hpp"
 
 namespace cybergear_driver_core
 {
@@ -41,7 +41,9 @@ struct MoveParam
     velocity(0.0),
     effort(0.0),
     kp(0.0),
-    kd(0.0) {}
+    kd(0.0)
+  {}
+
   float position;
   float velocity;
   float effort;
@@ -50,6 +52,7 @@ struct MoveParam
 };
 
 using CanData = std::array<uint8_t, 8>;
+
 struct CanFrame
 {
   uint32_t id;
@@ -71,29 +74,20 @@ public:
     motor_current_converter_(nullptr),
     temperature_converter_(nullptr)
   {
-    frame_id_ = std::make_unique<CybergearFrameId>(
-      param.device_id,
-      param.primary_id);
-    anguler_position_converter_ = std::make_unique<BoundedFloatByteConverter>(
-      param.max_position,
-      param.min_position);
-    anguler_velocity_converter_ = std::make_unique<BoundedFloatByteConverter>(
-      param.max_velocity,
-      param.min_velocity);
-    anguler_effort_converter_ = std::make_unique<BoundedFloatByteConverter>(
-      param.max_effort,
-      param.min_effort);
-    pid_kp_converter_ = std::make_unique<BoundedFloatByteConverter>(
-      param.max_gain_kp,
-      param.min_gain_kp);
-    pid_kd_converter_ = std::make_unique<BoundedFloatByteConverter>(
-      param.max_gain_kd,
-      param.min_gain_kd);
-    motor_current_converter_ = std::make_unique<BoundedFloatByteConverter>(
-      param.max_current,
-      param.min_current);
-    temperature_converter_ = std::make_unique<ScaledFloatByteConverter>(
-      param.temperature_scale);
+    frame_id_ = std::make_unique<CybergearFrameId>(param.device_id, param.primary_id);
+    anguler_position_converter_ =
+      std::make_unique<BoundedFloatByteConverter>(param.max_position, param.min_position);
+    anguler_velocity_converter_ =
+      std::make_unique<BoundedFloatByteConverter>(param.max_velocity, param.min_velocity);
+    anguler_effort_converter_ =
+      std::make_unique<BoundedFloatByteConverter>(param.max_effort, param.min_effort);
+    pid_kp_converter_ =
+      std::make_unique<BoundedFloatByteConverter>(param.max_gain_kp, param.min_gain_kp);
+    pid_kd_converter_ =
+      std::make_unique<BoundedFloatByteConverter>(param.max_gain_kd, param.min_gain_kd);
+    motor_current_converter_ =
+      std::make_unique<BoundedFloatByteConverter>(param.max_current, param.min_current);
+    temperature_converter_ = std::make_unique<ScaledFloatByteConverter>(param.temperature_scale);
   }
 
   ~CybergearPacket() {}
@@ -130,8 +124,7 @@ public:
     return can_frame;
   }
 
-  CanFrameUniquePtr createWriteParameter(
-    const uint16_t index, const std::array<uint8_t, 4> & param)
+  CanFrameUniquePtr createWriteParameter(const uint16_t index, const std::array<uint8_t, 4> & param)
   {
     auto can_frame = std::make_unique<CanFrame>();
 
@@ -151,7 +144,8 @@ public:
     return createWriteParameter(ram_parameters::RUN_MODE, param);
   }
 
-  CanFrameUniquePtr createPositionWithGainCommand(const float position, const float kp, const float kd)
+  CanFrameUniquePtr createPositionWithGainCommand(
+    const float position, const float kp, const float kd)
   {
     MoveParam param;
     param.position = position;

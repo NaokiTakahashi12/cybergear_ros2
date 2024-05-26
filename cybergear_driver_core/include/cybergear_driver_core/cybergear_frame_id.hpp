@@ -49,6 +49,7 @@ public:
       throw std::invalid_argument("Please set different id: device vs primary(host)");
     }
   }
+
   ~CybergearFrameId() {}
 
   bool isInfo(const uint32_t id)
@@ -104,8 +105,7 @@ public:
 
   uint32_t getInfoId(const uint8_t device_id)
   {
-    return frameId(
-      device_id, commands::INFO, primary_id_);
+    return frameId(device_id, commands::INFO, primary_id_);
   }
 
   uint32_t getInfoId()
@@ -115,50 +115,42 @@ public:
 
   uint32_t getCommandId(const uint16_t effort_limit)
   {
-    return frameId(
-      device_id_, commands::COMMAND, effort_limit);
+    return frameId(device_id_, commands::COMMAND, effort_limit);
   }
 
   uint32_t getFeedbackId()
   {
-    return frameId(
-      device_id_, commands::FEEDBACK, primary_id_);
+    return frameId(device_id_, commands::FEEDBACK, primary_id_);
   }
 
   uint32_t getEnableTorqueId()
   {
-    return frameId(
-      device_id_, commands::ENABLE_TORQUE, primary_id_);
+    return frameId(device_id_, commands::ENABLE_TORQUE, primary_id_);
   }
 
   uint32_t getResetTorqueId()
   {
-    return frameId(
-      device_id_, commands::RESET_TORQUE, primary_id_);
+    return frameId(device_id_, commands::RESET_TORQUE, primary_id_);
   }
 
   uint32_t getZeroPositionId()
   {
-    return frameId(
-      device_id_, commands::ZEROING, primary_id_);
+    return frameId(device_id_, commands::ZEROING, primary_id_);
   }
 
   uint32_t getChangeDeviceId(const uint8_t change_id)
   {
-    return frameId(
-      device_id_, commands::CHANGE_DEVICE_ID, change_id << 8 | primary_id_);
+    return frameId(device_id_, commands::CHANGE_DEVICE_ID, change_id << 8 | primary_id_);
   }
 
   uint32_t getReadParameterId()
   {
-    return frameId(
-      device_id_, commands::READ_PARAMETER, primary_id_);
+    return frameId(device_id_, commands::READ_PARAMETER, primary_id_);
   }
 
   uint32_t getWriteParameterId()
   {
-    return frameId(
-      device_id_, commands::WRITE_PARAMETER, primary_id_);
+    return frameId(device_id_, commands::WRITE_PARAMETER, primary_id_);
   }
 
 private:

@@ -52,11 +52,10 @@ public:
     const uint16_t scaled_double_byte = toDoubleByte(value);
     return {
       static_cast<uint8_t>((scaled_double_byte & 0xff00) >> 8),
-      static_cast<uint8_t>(scaled_double_byte & 0x00ff)
-    };
+      static_cast<uint8_t>(scaled_double_byte & 0x00ff)};
   }
 
-  template<unsigned int Size>
+  template <unsigned int Size>
   float toFloat(const std::array<uint8_t, Size> & data, const unsigned int offset) const
   {
     const uint16_t raw_data = data[0 + offset] << 8 | data[1 + offset];

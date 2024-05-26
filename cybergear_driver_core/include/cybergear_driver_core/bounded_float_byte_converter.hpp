@@ -22,9 +22,9 @@
 
 #pragma once
 
-#include <stdexcept>
-#include <array>
 #include <algorithm>
+#include <array>
+#include <stdexcept>
 
 namespace cybergear_driver_core
 {
@@ -62,23 +62,17 @@ public:
     const uint16_t scaled_double_byte = toDoubleByte(value);
     return {
       static_cast<uint8_t>((scaled_double_byte & 0xff00) >> 8),
-      static_cast<uint8_t>(scaled_double_byte & 0x00ff)
-    };
+      static_cast<uint8_t>(scaled_double_byte & 0x00ff)};
   }
 
   std::array<uint8_t, 4> toFourBytes(const float value)
   {
     const float clamped_float = toClampedFloat(value);
     const uint8_t * raw_bytes = reinterpret_cast<const uint8_t *>(&clamped_float);
-    return {
-      raw_bytes[0],
-      raw_bytes[1],
-      raw_bytes[2],
-      raw_bytes[3]
-    };
+    return {raw_bytes[0], raw_bytes[1], raw_bytes[2], raw_bytes[3]};
   }
 
-  template<unsigned int Size>
+  template <unsigned int Size>
   float toFloat(const std::array<uint8_t, Size> & data, const unsigned int offset) const
   {
     const uint16_t raw_data = data[0 + offset] << 8 | data[1 + offset];

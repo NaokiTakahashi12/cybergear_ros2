@@ -20,24 +20,30 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include <memory>
 #include <atomic>
-#include <vector>
+#include <memory>
 #include <utility>
+#include <vector>
 
+#include <can_msgs/msg/frame.hpp>
+#include <change_cybergear_id_node_parameters.hpp>
+#include <cybergear_driver_core/cybergear_driver_core.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
-#include <can_msgs/msg/frame.hpp>
-#include <cybergear_driver_core/cybergear_driver_core.hpp>
-#include <change_cybergear_id_node_parameters.hpp>
 
 namespace cybergear_maintenance_tools
 {
 class ChangeCybergearIdNode : public rclcpp::Node
 {
 public:
+  ChangeCybergearIdNode() = delete;
   explicit ChangeCybergearIdNode(const rclcpp::NodeOptions & options);
-  ~ChangeCybergearIdNode();
+  ChangeCybergearIdNode(const ChangeCybergearIdNode &) = delete;
+  ChangeCybergearIdNode(ChangeCybergearIdNode &&) = delete;
+  ~ChangeCybergearIdNode() override;
+
+  ChangeCybergearIdNode & operator=(const ChangeCybergearIdNode &) = delete;
+  ChangeCybergearIdNode & operator=(ChangeCybergearIdNode &&) = delete;
 
 private:
   rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_frame_publisher_;
@@ -68,32 +74,25 @@ ChangeCybergearIdNode::ChangeCybergearIdNode(const rclcpp::NodeOptions & options
 
   param_listener_ = std::make_unique<change_cybergear_id_node::ParamListener>(
     this->get_node_parameters_interface());
-  params_ = std::make_unique<change_cybergear_id_node::Params>(
-    param_listener_->get_params());
+  params_ = std::make_unique<change_cybergear_id_node::Params>(param_listener_->get_params());
 
   cybergear_driver_core::CybergearPacketParam packet_param;
-  packet_param.primary_id = params_->primary_id;
-  packet_param.device_id = params_->device_id;
+  packet_param.primary_id = static_cast<int>(params_->primary_id);
+  packet_param.device_id = static_cast<int>(params_->device_id);
   packet_ = std::make_unique<cybergear_driver_core::CybergearPacket>(packet_param);
 
-  can_frame_publisher_ = this->create_publisher<can_msgs::msg::Frame>(
-    "to_can_bus", 3);
+  can_frame_publisher_ = this->create_publisher<can_msgs::msg::Frame>("to_can_bus", 3);
 
   can_frame_subscriber_ = this->create_subscription<can_msgs::msg::Frame>(
     "from_can_bus",
     3,
-    std::bind(
-      &ChangeCybergearIdNode::subscribeCanFrameCallback,
-      this,
-      std::placeholders::_1));
+    std::bind(&ChangeCybergearIdNode::subscribeCanFrameCallback, this, std::placeholders::_1));
 
-  const unsigned int send_duration_milliseconds = 1e3 / params_->send_frequency;
+  const auto send_duration_milliseconds = static_cast<unsigned int>(1e3 / params_->send_frequency);
 
   send_can_frame_timer_ = this->create_wall_timer(
     std::chrono::milliseconds(send_duration_milliseconds),
-    std::bind(
-      &ChangeCybergearIdNode::sendCanFrameTimerCallback,
-      this));
+    std::bind(&ChangeCybergearIdNode::sendCanFrameTimerCallback, this));
 }
 
 ChangeCybergearIdNode::~ChangeCybergearIdNode()
@@ -107,7 +106,8 @@ void ChangeCybergearIdNode::subscribeCanFrameCallback(
   const unsigned int device_id = packet_->frameId().getFrameId(msg->id);
   if (device_id == params_->primary_id) {
     return;
-  } else if (!packet_->frameId().isInfo(msg->id)) {
+  }
+  if (!packet_->frameId().isInfo(msg->id)) {
     return;
   }
   RCLCPP_INFO_STREAM(this->get_logger(), "Found new CyberGear device: " << device_id);
@@ -115,6 +115,7 @@ void ChangeCybergearIdNode::subscribeCanFrameCallback(
 
 void ChangeCybergearIdNode::sendCanFrameTimerCallback()
 {
+  constexpr uint8_t kDlc = 8;
   static unsigned int callback_counter = 0;
 
   if (callback_counter == 0) {
@@ -123,7 +124,7 @@ void ChangeCybergearIdNode::sendCanFrameTimerCallback()
     msg->is_rtr = false;
     msg->is_extended = true;
     msg->is_error = false;
-    msg->dlc = 8;
+    msg->dlc = kDlc;
     msg->id = packet_->frameId().getChangeDeviceId(params_->target_id);
     can_frame_publisher_->publish(std::move(msg));
   } else {

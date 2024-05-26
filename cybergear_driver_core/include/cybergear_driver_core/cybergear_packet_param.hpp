@@ -29,7 +29,7 @@ struct CybergearPacketParam
   int device_id, primary_id;
   float max_position, min_position;  //!< Angular position [rad]
   float max_velocity, min_velocity;  //!< Angular velocity [rad/s]
-  float max_effort, min_effort;  //!< Effort [N/m]
+  float max_effort, min_effort;      //!< Effort [N/m]
   float max_gain_kp, min_gain_kp;
   float max_gain_kd, min_gain_kd;
   float max_current, min_current;  //!< Motor current [A]
@@ -50,6 +50,7 @@ struct CybergearPacketParam
     min_gain_kd(0.0),
     max_current(23.0),
     min_current(-23.0),
-    temperature_scale(0.1) {}
+    temperature_scale(0.1)
+  {}
 };
 }  // namespace cybergear_driver_core
