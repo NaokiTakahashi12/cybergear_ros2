@@ -45,6 +45,7 @@ public:
 
   SingleJointTrajectoryPoints();
   SingleJointTrajectoryPoints(const SingleJointTrajectoryPoints &);
+  SingleJointTrajectoryPoints(SingleJointTrajectoryPoints &&) = delete;
   ~SingleJointTrajectoryPoints();
 
   void reset();
@@ -59,15 +60,16 @@ public:
   const Points & points() const;
 
   SingleJointTrajectoryPoints & operator=(const SingleJointTrajectoryPoints &);
+  SingleJointTrajectoryPoints & operator=(SingleJointTrajectoryPoints &&) = delete;
 
 private:
-  SingleJointTrajectoryPoint m_start_trajectory_point;
-  Points m_trajectory_points;
+  SingleJointTrajectoryPoint start_trajectory_point_;
+  Points trajectory_points_;
 
-  rclcpp::Time m_start_trajectory_time;
-  std::vector<double> m_trajectory_durations_from_recived;
+  rclcpp::Time start_trajectory_time_;
+  std::vector<float> trajectory_durations_from_recived_;
 
-  unsigned int getJointIndexFromJointNames(
+  static unsigned int getJointIndexFromJointNames(
     const std::string &, const std::vector<std::string> &);
 };
 }  // namespace cybergear_socketcan_driver

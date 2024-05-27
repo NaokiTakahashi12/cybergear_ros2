@@ -22,162 +22,151 @@
 
 #include "cybergear_socketcan_driver_node.hpp"
 
-#include <cmath>
-#include <memory>
-#include <string>
-#include <limits>
+#include <algorithm>
 #include <array>
 #include <chrono>
+#include <cmath>
 #include <functional>
-#include <algorithm>
-#include <utility>
+#include <limits>
+#include <memory>
 #include <stdexcept>
+#include <string>
+#include <utility>
 
+#include <can_msgs/msg/frame.hpp>
+#include <cybergear_driver_core/cybergear_driver_core.hpp>
+#include <cybergear_socketcan_driver_node_params.hpp>
+#include <diagnostic_msgs/msg/diagnostic_status.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
-#include <std_msgs/msg/header.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <sensor_msgs/msg/temperature.hpp>
-#include <diagnostic_msgs/msg/diagnostic_status.hpp>
-#include <can_msgs/msg/frame.hpp>
+#include <std_msgs/msg/header.hpp>
 #include <std_srvs/srv/set_bool.hpp>
-#include <cybergear_socketcan_driver_node_params.hpp>
-#include <cybergear_driver_core/cybergear_driver_core.hpp>
 
 namespace cybergear_socketcan_driver
 {
 CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(
   const std::string & node_name, const rclcpp::NodeOptions & node_options)
 : rclcpp::Node(node_name, rclcpp::NodeOptions(node_options).use_intra_process_comms(true)),
-  m_recived_can_msg(false),
-  m_no_response_can_msg_counter(0),
-  m_packet(nullptr),
-  m_last_subscribe_joint_state(nullptr),
-  m_last_subscribe_can_frame(nullptr),
-  m_last_subscribe_setpoint(nullptr),
-  m_can_frame_subscriber(nullptr),
-  m_joint_trajectory_subscriber(nullptr),
-  m_joint_setpoint_subscriber(nullptr),
-  m_can_frame_publisher(nullptr),
-  m_joint_state_publisher(nullptr),
-  m_joint_temperature_publisher(nullptr),
-  m_send_can_frame_timer(nullptr),
-  m_update_parameter_timer(nullptr),
-  m_enable_torque_service(nullptr),
-  m_zero_position_service(nullptr),
-  m_diagnostic_updater(nullptr),
-  m_param_listener(nullptr),
-  m_params(nullptr),
-  m_single_joint_trajectory(nullptr)
+  recived_can_msg_(false),
+  no_response_can_msg_counter_(0),
+  packet_(nullptr),
+  last_subscribe_joint_state_(nullptr),
+  last_subscribe_can_frame_(nullptr),
+  last_subscribe_setpoint_(nullptr),
+  can_frame_subscriber_(nullptr),
+  joint_trajectory_subscriber_(nullptr),
+  joint_setpoint_subscriber_(nullptr),
+  can_frame_publisher_(nullptr),
+  joint_state_publisher_(nullptr),
+  joint_temperature_publisher_(nullptr),
+  send_can_frame_timer_(nullptr),
+  update_parameter_timer_(nullptr),
+  enable_torque_service_(nullptr),
+  zero_position_service_(nullptr),
+  diagnostic_updater_(nullptr),
+  param_listener_(nullptr),
+  params_(nullptr),
+  single_joint_trajectory_(nullptr)
 {
   RCLCPP_INFO_STREAM(this->get_logger(), "Start " << this->get_name());
   RCLCPP_WARN(this->get_logger(), "THIS NODE IS UNDER DEVELOPMENT");
 
-  m_param_listener = std::make_unique<cybergear_socketcan_driver_node::ParamListener>(
+  param_listener_ = std::make_unique<cybergear_socketcan_driver_node::ParamListener>(
     this->get_node_parameters_interface());
-  m_params = std::make_unique<cybergear_socketcan_driver_node::Params>(
-    m_param_listener->get_params());
+  params_ =
+    std::make_unique<cybergear_socketcan_driver_node::Params>(param_listener_->get_params());
 
   cybergear_driver_core::CybergearPacketParam packet_param;
-  packet_param.device_id = m_params->device_id;
-  packet_param.primary_id = m_params->primary_id;
-  packet_param.max_position = m_params->anguler_position.max;
-  packet_param.min_position = m_params->anguler_position.min;
-  packet_param.max_velocity = m_params->anguler_velocity.max;
-  packet_param.min_velocity = m_params->anguler_velocity.min;
-  packet_param.max_effort = m_params->anguler_effort.max;
-  packet_param.min_effort = m_params->anguler_effort.min;
-  packet_param.max_gain_kp = m_params->pid_gain_range.kp.max;
-  packet_param.min_gain_kp = m_params->pid_gain_range.kp.min;
-  packet_param.max_gain_kd = m_params->pid_gain_range.kd.max;
-  packet_param.min_gain_kd = m_params->pid_gain_range.kd.min;
-  packet_param.temperature_scale = m_params->temperature.scale;
-  m_packet = std::make_unique<cybergear_driver_core::CybergearPacket>(packet_param);
+  packet_param.device_id = static_cast<int>(params_->device_id);
+  packet_param.primary_id = static_cast<int>(params_->primary_id);
+  packet_param.max_position = static_cast<float>(params_->anguler_position.max);
+  packet_param.min_position = static_cast<float>(params_->anguler_position.min);
+  packet_param.max_velocity = static_cast<float>(params_->anguler_velocity.max);
+  packet_param.min_velocity = static_cast<float>(params_->anguler_velocity.min);
+  packet_param.max_effort = static_cast<float>(params_->anguler_effort.max);
+  packet_param.min_effort = static_cast<float>(params_->anguler_effort.min);
+  packet_param.max_gain_kp = static_cast<float>(params_->pid_gain_range.kp.max);
+  packet_param.min_gain_kp = static_cast<float>(params_->pid_gain_range.kp.min);
+  packet_param.max_gain_kd = static_cast<float>(params_->pid_gain_range.kd.max);
+  packet_param.min_gain_kd = static_cast<float>(params_->pid_gain_range.kd.min);
+  packet_param.temperature_scale = static_cast<float>(params_->temperature.scale);
+  packet_ = std::make_unique<cybergear_driver_core::CybergearPacket>(packet_param);
 
-  m_can_frame_publisher = this->create_publisher<can_msgs::msg::Frame>(
-    "to_can_bus", 3);
-  m_joint_state_publisher = this->create_publisher<sensor_msgs::msg::JointState>(
-    "~/joint_state", 3);
-  m_joint_temperature_publisher = this->create_publisher<sensor_msgs::msg::Temperature>(
-    "~/temperature", 3);
+  can_frame_publisher_ = this->create_publisher<can_msgs::msg::Frame>("to_can_bus", 3);
+  joint_state_publisher_ = this->create_publisher<sensor_msgs::msg::JointState>("~/joint_state", 3);
+  joint_temperature_publisher_ =
+    this->create_publisher<sensor_msgs::msg::Temperature>("~/temperature", 3);
 
-  m_diagnostic_updater = std::make_unique<diagnostic_updater::Updater>(
+  diagnostic_updater_ = std::make_unique<diagnostic_updater::Updater>(
     this->get_node_base_interface(),
     this->get_node_clock_interface(),
     this->get_node_logging_interface(),
     this->get_node_parameters_interface(),
     this->get_node_timers_interface(),
     this->get_node_topics_interface());
-  m_diagnostic_updater->setHardwareIDf("CyberGear-%i", m_params->device_id);
-  m_diagnostic_updater->add(
+  diagnostic_updater_->setHardwareID("CyberGear-" + std::to_string(params_->device_id));
+  diagnostic_updater_->add(
     "CyberGear Status",
     std::bind(
-      &CybergearSocketCanDriverNode::canFrameDiagnosricsCallback,
-      this,
-      std::placeholders::_1
-  ));
+      &CybergearSocketCanDriverNode::canFrameDiagnosricsCallback, this, std::placeholders::_1));
 
-  m_can_frame_subscriber = this->create_subscription<can_msgs::msg::Frame>(
+  can_frame_subscriber_ = this->create_subscription<can_msgs::msg::Frame>(
     "from_can_bus",
     3,
     std::bind(
-      &CybergearSocketCanDriverNode::subscribeCanFrameCallback,
-      this,
-      std::placeholders::_1
-  ));
+      &CybergearSocketCanDriverNode::subscribeCanFrameCallback, this, std::placeholders::_1));
 
-  if (m_params->command_topic_type == "trajectory") {
-    m_joint_trajectory_subscriber =
-      this->create_subscription<trajectory_msgs::msg::JointTrajectory>(
+  if (params_->command_topic_type == "trajectory") {
+    joint_trajectory_subscriber_ = this->create_subscription<trajectory_msgs::msg::JointTrajectory>(
       "joint_trajectory",
       3,
       std::bind(
         &CybergearSocketCanDriverNode::subscribeJointTrajectoryCallback,
         this,
-        std::placeholders::_1
-      ));
-  } else if (m_params->command_topic_type == "setpoint") {
-    m_joint_setpoint_subscriber =
+        std::placeholders::_1));
+  } else if (params_->command_topic_type == "setpoint") {
+    joint_setpoint_subscriber_ =
       this->create_subscription<cybergear_driver_msgs::msg::SetpointStamped>(
       "~/joint_setpoint",
       2,
       std::bind(
         &CybergearSocketCanDriverNode::subscribeJointSetpointCallback,
         this,
-        std::placeholders::_1
-      ));
+        std::placeholders::_1));
   }
 
-  const unsigned int send_duration_milliseconds = 1e3 / m_params->send_frequency;
-  const unsigned int update_param_duration_milliseconds = 1e3 / m_params->update_param_frequency;
+  const auto send_duration_milliseconds = static_cast<unsigned int>(1e3 / params_->send_frequency);
+  const auto update_param_duration_milliseconds =
+    static_cast<unsigned int>(1e3 / params_->update_param_frequency);
 
-  m_send_can_frame_timer = this->create_wall_timer(
+  send_can_frame_timer_ = this->create_wall_timer(
     std::chrono::milliseconds(send_duration_milliseconds),
     std::bind(&CybergearSocketCanDriverNode::sendCanFrameTimerCallback, this));
-  m_update_parameter_timer = this->create_wall_timer(
+  update_parameter_timer_ = this->create_wall_timer(
     std::chrono::milliseconds(update_param_duration_milliseconds),
     std::bind(&CybergearSocketCanDriverNode::updateParameterTimerCallback, this));
 
-  m_enable_torque_service = this->create_service<std_srvs::srv::SetBool>(
+  enable_torque_service_ = this->create_service<std_srvs::srv::SetBool>(
     "~/enable_torque",
     std::bind(
       &CybergearSocketCanDriverNode::enableTorqueServiceCallback,
       this,
       std::placeholders::_1,
-      std::placeholders::_2
-  ));
-  m_zero_position_service = this->create_service<std_srvs::srv::Trigger>(
+      std::placeholders::_2));
+  zero_position_service_ = this->create_service<std_srvs::srv::Trigger>(
     "~/zero_position",
     std::bind(
       &CybergearSocketCanDriverNode::zeroPositionServiceCallback,
       this,
       std::placeholders::_1,
-      std::placeholders::_2
-  ));
+      std::placeholders::_2));
 }
 
 CybergearSocketCanDriverNode::CybergearSocketCanDriverNode(const rclcpp::NodeOptions & node_options)
-: CybergearSocketCanDriverNode("cybergear_socketcan_driver", node_options) {}
+: CybergearSocketCanDriverNode("cybergear_socketcan_driver", node_options)
+{}
 
 CybergearSocketCanDriverNode::~CybergearSocketCanDriverNode()
 {
@@ -186,32 +175,35 @@ CybergearSocketCanDriverNode::~CybergearSocketCanDriverNode()
 
 cybergear_driver_core::CybergearPacket & CybergearSocketCanDriverNode::packet()
 {
-  return *m_packet;
+  return *packet_;
 }
 
 cybergear_socketcan_driver_node::Params & CybergearSocketCanDriverNode::params()
 {
-  return *m_params;
+  return *params_;
 }
 
-void CybergearSocketCanDriverNode::procFeedbackPacketCallback(
-  const can_msgs::msg::Frame &) {}
+void CybergearSocketCanDriverNode::procFeedbackPacketCallback(const can_msgs::msg::Frame &) {}
+
 void CybergearSocketCanDriverNode::procFeedbackJointStateCallback(
-  const sensor_msgs::msg::JointState &) {}
+  const sensor_msgs::msg::JointState &)
+{}
+
 void CybergearSocketCanDriverNode::procFeedbackTemperatureCallabck(
-  const sensor_msgs::msg::Temperature &) {}
+  const sensor_msgs::msg::Temperature &)
+{}
 
 void CybergearSocketCanDriverNode::sendCanFrameFromTrajectoryCallback(
-  can_msgs::msg::Frame &,
-  const SingleJointTrajectoryPoints &) {}
+  can_msgs::msg::Frame &, const SingleJointTrajectoryPoints &)
+{}
 
 void CybergearSocketCanDriverNode::sendCanFrameFromSetpointCallback(
-  can_msgs::msg::Frame &,
-  const cybergear_driver_msgs::msg::SetpointStamped &) {}
+  can_msgs::msg::Frame &, const cybergear_driver_msgs::msg::SetpointStamped &)
+{}
 
 void CybergearSocketCanDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame & msg)
 {
-  const auto can_frame = m_packet->createChangeToOperationModeCommand();
+  const auto can_frame = packet_->createChangeToOperationModeCommand();
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
   msg.id = can_frame->id;
 }
@@ -220,14 +212,14 @@ void CybergearSocketCanDriverNode::sendChangeRunModeCallback(can_msgs::msg::Fram
 void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
   const can_msgs::msg::Frame::ConstSharedPtr & msg)
 {
-  if (!m_packet->frameId().isDevice(msg->id)) {
+  if (!packet_->frameId().isDevice(msg->id)) {
     return;
   }
-  // TODO(Naoki Takahashi) m_params->wait_power_on
+  // TODO(Naoki Takahashi) params_->wait_power_on
 
-  m_last_subscribe_can_frame = msg;
+  last_subscribe_can_frame_ = msg;
 
-  if (m_packet->frameId().isFault(msg->id)) {
+  if (packet_->frameId().isFault(msg->id)) {
     RCLCPP_ERROR(this->get_logger(), "Detect fault state from cybergear");
     std::string can_frame_data;
     for (const auto & d : msg->data) {
@@ -237,10 +229,10 @@ void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
     rclcpp::shutdown();
     return;
   }
-  if (m_packet->frameId().isFeedback(msg->id)) {
+  if (packet_->frameId().isFeedback(msg->id)) {
     procFeedbackPacket(*msg);
   }
-  m_recived_can_msg = true;
+  recived_can_msg_ = true;
 }
 
 void CybergearSocketCanDriverNode::subscribeJointTrajectoryCallback(
@@ -258,15 +250,16 @@ void CybergearSocketCanDriverNode::subscribeJointTrajectoryCallback(
   }
   if (!has_this_joint_cmd) {
     return;
-  } else if (msg->points.size() <= static_cast<unsigned int>(cmd_index)) {
+  }
+  if (msg->points.size() <= static_cast<unsigned int>(cmd_index)) {
     return;
   }
-  m_single_joint_trajectory.reset();
-  m_single_joint_trajectory = std::make_shared<SingleJointTrajectoryPoints>();
-  if (m_single_joint_trajectory) {
-    m_single_joint_trajectory->load(this->params().joint_name, *msg);
-    if (m_last_subscribe_joint_state) {
-      m_single_joint_trajectory->initTrajectoryPoint(*m_last_subscribe_joint_state);
+  single_joint_trajectory_.reset();
+  single_joint_trajectory_ = std::make_shared<SingleJointTrajectoryPoints>();
+  if (single_joint_trajectory_) {
+    single_joint_trajectory_->load(this->params().joint_name, *msg);
+    if (last_subscribe_joint_state_) {
+      single_joint_trajectory_->initTrajectoryPoint(*last_subscribe_joint_state_);
     }
   }
 }
@@ -274,42 +267,42 @@ void CybergearSocketCanDriverNode::subscribeJointTrajectoryCallback(
 void CybergearSocketCanDriverNode::subscribeJointSetpointCallback(
   const cybergear_driver_msgs::msg::SetpointStamped::ConstSharedPtr & msg)
 {
-  m_last_subscribe_setpoint = msg;
+  last_subscribe_setpoint_ = msg;
 }
 
 void CybergearSocketCanDriverNode::sendCanFrameTimerCallback()
 {
   static int wait_state_print_cycle_counter = 0;
 
-  if (!m_recived_can_msg) {
-    if (wait_state_print_cycle_counter > m_params->send_frequency) {
+  if (!recived_can_msg_) {
+    if (wait_state_print_cycle_counter > params_->send_frequency) {
       RCLCPP_INFO(this->get_logger(), "Waiting for feedback message from the CAN bus..");
       wait_state_print_cycle_counter = 0;
     }
     sendFeedbackRequst();
     wait_state_print_cycle_counter++;
-    m_no_response_can_msg_counter++;
+    no_response_can_msg_counter_++;
     return;
   }
   auto msg = std::make_unique<can_msgs::msg::Frame>();
   setDefaultCanFrame(msg);
 
-  if (m_last_subscribe_setpoint) {
-    sendCanFrameFromSetpointCallback(*msg, *m_last_subscribe_setpoint);
-  } else if (m_single_joint_trajectory) {
-    sendCanFrameFromTrajectoryCallback(*msg, *m_single_joint_trajectory);
+  if (last_subscribe_setpoint_) {
+    sendCanFrameFromSetpointCallback(*msg, *last_subscribe_setpoint_);
+  } else if (single_joint_trajectory_) {
+    sendCanFrameFromTrajectoryCallback(*msg, *single_joint_trajectory_);
   } else {
-    msg->id = m_packet->frameId().getFeedbackId();
+    msg->id = packet_->frameId().getFeedbackId();
   }
-  m_can_frame_publisher->publish(std::move(msg));
-  m_recived_can_msg = false;
+  can_frame_publisher_->publish(std::move(msg));
+  recived_can_msg_ = false;
 }
 
 void CybergearSocketCanDriverNode::updateParameterTimerCallback()
 {
-  if (m_param_listener->is_old(*m_params)) {
-    m_param_listener->refresh_dynamic_parameters();
-    *m_params = m_param_listener->get_params();
+  if (param_listener_->is_old(*params_)) {
+    param_listener_->refresh_dynamic_parameters();
+    *params_ = param_listener_->get_params();
     RCLCPP_INFO(this->get_logger(), "Changed dynamic parameters");
   }
 }
@@ -322,11 +315,11 @@ void CybergearSocketCanDriverNode::enableTorqueServiceCallback(
   RCLCPP_INFO(this->get_logger(), "Calling enableTorqueServiceCallback");
 
   // Prevent abrupt behavior during torque switching
-  if (m_last_subscribe_setpoint) {
-    m_last_subscribe_setpoint.reset();
+  if (last_subscribe_setpoint_) {
+    last_subscribe_setpoint_.reset();
   }
-  if (m_single_joint_trajectory) {
-    m_single_joint_trajectory.reset();
+  if (single_joint_trajectory_) {
+    single_joint_trajectory_.reset();
   }
   sendResetTorque();
 
@@ -355,32 +348,30 @@ void CybergearSocketCanDriverNode::zeroPositionServiceCallback(
 void CybergearSocketCanDriverNode::canFrameDiagnosricsCallback(
   diagnostic_updater::DiagnosticStatusWrapper & diag_status)
 {
-  const auto no_response_can_msg_counter = m_no_response_can_msg_counter;
-  m_no_response_can_msg_counter = 0;
+  const auto no_response_can_msg_counter = no_response_can_msg_counter_;
+  no_response_can_msg_counter_ = 0;
 
-  if (!m_last_subscribe_can_frame) {
-    diag_status.summary(
-      diagnostic_msgs::msg::DiagnosticStatus::ERROR,
-      "Not recived CAN frame");
+  if (!last_subscribe_can_frame_) {
+    diag_status.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Not recived CAN frame");
     return;
   }
   std::string control_mode;
 
-  if (m_packet->frameId().isResetMode(m_last_subscribe_can_frame->id)) {
+  if (packet_->frameId().isResetMode(last_subscribe_can_frame_->id)) {
     control_mode = "reset";
-  } else if (m_packet->frameId().isCaliMode(m_last_subscribe_can_frame->id)) {
+  } else if (packet_->frameId().isCaliMode(last_subscribe_can_frame_->id)) {
     control_mode = "cali";
-  } else if (m_packet->frameId().isRunningMode(m_last_subscribe_can_frame->id)) {
+  } else if (packet_->frameId().isRunningMode(last_subscribe_can_frame_->id)) {
     control_mode = "running";
   } else {
     control_mode = "unknown";
   }
   diag_status.add("Control mode", control_mode);
-  diag_status.add("Raw ID", m_last_subscribe_can_frame->id);
+  diag_status.add("Raw ID", last_subscribe_can_frame_->id);
   diag_status.add("No response", no_response_can_msg_counter);
-  diag_status.add("Joint trajectory subscribed", (m_single_joint_trajectory != nullptr));
+  diag_status.add("Joint trajectory subscribed", (single_joint_trajectory_ != nullptr));
 
-  if (m_packet->frameId().hasError(m_last_subscribe_can_frame->id)) {
+  if (packet_->frameId().hasError(last_subscribe_can_frame_->id)) {
     diag_status.summary(
       diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Recived error from CyberGear");
   } else if (no_response_can_msg_counter > 0) {
@@ -388,62 +379,63 @@ void CybergearSocketCanDriverNode::canFrameDiagnosricsCallback(
   } else {
     diag_status.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "No problem");
   }
-  m_last_subscribe_can_frame.reset();
+  last_subscribe_can_frame_.reset();
 }
 
 void CybergearSocketCanDriverNode::procFeedbackPacket(const can_msgs::msg::Frame & msg)
 {
-  if (m_packet->frameId().hasError(msg.id)) {
+  if (packet_->frameId().hasError(msg.id)) {
     RCLCPP_WARN(this->get_logger(), "Detect error state from cybergear");
   }
   std_msgs::msg::Header header_msg;
   header_msg.stamp = this->get_clock()->now();
-  header_msg.frame_id = m_params->joint_name;
+  header_msg.frame_id = params_->joint_name;
 
-  if (m_joint_state_publisher) {
+  if (joint_state_publisher_) {
     auto joint_state_msg = std::make_unique<sensor_msgs::msg::JointState>();
 
     joint_state_msg->header = header_msg;
-    joint_state_msg->name.push_back(m_params->joint_name);
-    joint_state_msg->position.push_back(m_packet->persePosition(msg.data));
-    joint_state_msg->velocity.push_back(m_packet->perseVelocity(msg.data));
-    joint_state_msg->effort.push_back(m_packet->perseEffort(msg.data));
+    joint_state_msg->name.push_back(params_->joint_name);
+    joint_state_msg->position.push_back(packet_->persePosition(msg.data));
+    joint_state_msg->velocity.push_back(packet_->perseVelocity(msg.data));
+    joint_state_msg->effort.push_back(packet_->perseEffort(msg.data));
 
-    if (!m_last_subscribe_joint_state) {
-      m_last_subscribe_joint_state = std::make_unique<sensor_msgs::msg::JointState>();
+    if (!last_subscribe_joint_state_) {
+      last_subscribe_joint_state_ = std::make_unique<sensor_msgs::msg::JointState>();
     }
-    *m_last_subscribe_joint_state = *joint_state_msg;
+    *last_subscribe_joint_state_ = *joint_state_msg;
 
     procFeedbackJointStateCallback(*joint_state_msg);
 
-    m_joint_state_publisher->publish(std::move(joint_state_msg));
+    joint_state_publisher_->publish(std::move(joint_state_msg));
   }
-  if (m_joint_temperature_publisher) {
+  if (joint_temperature_publisher_) {
     auto temperature_msg = std::make_unique<sensor_msgs::msg::Temperature>();
 
     temperature_msg->header = header_msg;
-    temperature_msg->temperature = m_packet->perseTemperature(msg.data);
+    temperature_msg->temperature = packet_->perseTemperature(msg.data);
     temperature_msg->variance = 0.0;  // unknown
 
     procFeedbackTemperatureCallabck(*temperature_msg);
 
-    m_joint_temperature_publisher->publish(std::move(temperature_msg));
+    joint_temperature_publisher_->publish(std::move(temperature_msg));
   }
   procFeedbackPacketCallback(msg);
 }
 
 void CybergearSocketCanDriverNode::setDefaultCanFrame(can_msgs::msg::Frame::UniquePtr & msg)
 {
-  // TODO(Naoki Takahashi) m_params->wait_power_on
+  constexpr uint8_t kDlc = 8;
+  // TODO(Naoki Takahashi) params_->wait_power_on
   if (!msg) {
     return;
   }
   msg->header.stamp = this->get_clock()->now();
-  msg->header.frame_id = m_params->joint_name;
+  msg->header.frame_id = params_->joint_name;
   msg->is_rtr = false;
   msg->is_extended = true;
   msg->is_error = false;
-  msg->dlc = 8;
+  msg->dlc = kDlc;
 }
 
 void CybergearSocketCanDriverNode::sendChangeRunMode()
@@ -454,41 +446,41 @@ void CybergearSocketCanDriverNode::sendChangeRunMode()
   if (msg->id == 0) {
     return;
   }
-  m_can_frame_publisher->publish(std::move(msg));
+  can_frame_publisher_->publish(std::move(msg));
 }
 
 void CybergearSocketCanDriverNode::sendEnableTorque()
 {
   auto msg = std::make_unique<can_msgs::msg::Frame>();
   setDefaultCanFrame(msg);
-  msg->id = m_packet->frameId().getEnableTorqueId();
-  m_can_frame_publisher->publish(std::move(msg));
+  msg->id = packet_->frameId().getEnableTorqueId();
+  can_frame_publisher_->publish(std::move(msg));
 }
 
 void CybergearSocketCanDriverNode::sendResetTorque()
 {
   auto msg = std::make_unique<can_msgs::msg::Frame>();
   setDefaultCanFrame(msg);
-  msg->id = m_packet->frameId().getResetTorqueId();
-  m_can_frame_publisher->publish(std::move(msg));
+  msg->id = packet_->frameId().getResetTorqueId();
+  can_frame_publisher_->publish(std::move(msg));
 }
 
 void CybergearSocketCanDriverNode::sendFeedbackRequst()
 {
   auto msg = std::make_unique<can_msgs::msg::Frame>();
   setDefaultCanFrame(msg);
-  msg->id = m_packet->frameId().getFeedbackId();
-  m_can_frame_publisher->publish(std::move(msg));
+  msg->id = packet_->frameId().getFeedbackId();
+  can_frame_publisher_->publish(std::move(msg));
 }
 
 void CybergearSocketCanDriverNode::sendZeroPosition()
 {
   auto msg = std::make_unique<can_msgs::msg::Frame>();
   setDefaultCanFrame(msg);
-  const auto can_frame = m_packet->createZeroPosition();
+  const auto can_frame = packet_->createZeroPosition();
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg->data.begin());
   msg->id = can_frame->id;
-  m_can_frame_publisher->publish(std::move(msg));
+  can_frame_publisher_->publish(std::move(msg));
 }
 }  // namespace cybergear_socketcan_driver
 

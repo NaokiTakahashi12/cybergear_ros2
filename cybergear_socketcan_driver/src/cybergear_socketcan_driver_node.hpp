@@ -25,20 +25,20 @@
 #include <memory>
 #include <string>
 
-#include <rclcpp/rclcpp.hpp>
+#include <can_msgs/msg/frame.hpp>
+#include <cybergear_driver_core/cybergear_driver_core.hpp>
+#include <cybergear_driver_msgs/msg/setpoint_stamped.hpp>
+#include <cybergear_socketcan_driver/single_joint_trajectory_points.hpp>
+#include <cybergear_socketcan_driver_node_params.hpp>
 #include <diagnostic_updater/diagnostic_updater.hpp>
-#include <std_msgs/msg/header.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <sensor_msgs/msg/temperature.hpp>
-#include <trajectory_msgs/msg/joint_trajectory.hpp>
-#include <trajectory_msgs/msg/joint_trajectory_point.hpp>
-#include <can_msgs/msg/frame.hpp>
-#include <cybergear_driver_msgs/msg/setpoint_stamped.hpp>
+#include <std_msgs/msg/header.hpp>
 #include <std_srvs/srv/set_bool.hpp>
 #include <std_srvs/srv/trigger.hpp>
-#include <cybergear_socketcan_driver_node_params.hpp>
-#include <cybergear_driver_core/cybergear_driver_core.hpp>
-#include <cybergear_socketcan_driver/single_joint_trajectory_points.hpp>
+#include <trajectory_msgs/msg/joint_trajectory.hpp>
+#include <trajectory_msgs/msg/joint_trajectory_point.hpp>
 
 namespace cybergear_socketcan_driver
 {
@@ -46,9 +46,15 @@ namespace cybergear_socketcan_driver
 class CybergearSocketCanDriverNode : public rclcpp::Node
 {
 public:
+  CybergearSocketCanDriverNode() = delete;
   explicit CybergearSocketCanDriverNode(const std::string & node_name, const rclcpp::NodeOptions &);
   explicit CybergearSocketCanDriverNode(const rclcpp::NodeOptions &);
-  virtual ~CybergearSocketCanDriverNode();
+  CybergearSocketCanDriverNode(const CybergearSocketCanDriverNode &) = delete;
+  CybergearSocketCanDriverNode(CybergearSocketCanDriverNode &&) = delete;
+  ~CybergearSocketCanDriverNode() override;
+
+  CybergearSocketCanDriverNode & operator=(const CybergearSocketCanDriverNode &) = delete;
+  CybergearSocketCanDriverNode & operator=(CybergearSocketCanDriverNode &&) = delete;
 
 protected:
   cybergear_driver_core::CybergearPacket & packet();
@@ -59,45 +65,43 @@ protected:
   virtual void procFeedbackTemperatureCallabck(const sensor_msgs::msg::Temperature &);
 
   virtual void sendCanFrameFromTrajectoryCallback(
-    can_msgs::msg::Frame &,
-    const SingleJointTrajectoryPoints &);
+    can_msgs::msg::Frame &, const SingleJointTrajectoryPoints &);
   virtual void sendCanFrameFromSetpointCallback(
-    can_msgs::msg::Frame &,
-    const cybergear_driver_msgs::msg::SetpointStamped &);
+    can_msgs::msg::Frame &, const cybergear_driver_msgs::msg::SetpointStamped &);
   virtual void sendChangeRunModeCallback(can_msgs::msg::Frame &);
 
 private:
-  bool m_recived_can_msg;
-  unsigned int m_no_response_can_msg_counter;
+  bool recived_can_msg_;
+  unsigned int no_response_can_msg_counter_;
 
-  std::unique_ptr<cybergear_driver_core::CybergearPacket> m_packet;
+  std::unique_ptr<cybergear_driver_core::CybergearPacket> packet_;
 
-  sensor_msgs::msg::JointState::UniquePtr m_last_subscribe_joint_state;
-  can_msgs::msg::Frame::ConstSharedPtr m_last_subscribe_can_frame;
-  cybergear_driver_msgs::msg::SetpointStamped::ConstSharedPtr m_last_subscribe_setpoint;
+  sensor_msgs::msg::JointState::UniquePtr last_subscribe_joint_state_;
+  can_msgs::msg::Frame::ConstSharedPtr last_subscribe_can_frame_;
+  cybergear_driver_msgs::msg::SetpointStamped::ConstSharedPtr last_subscribe_setpoint_;
 
-  rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr m_can_frame_subscriber;
+  rclcpp::Subscription<can_msgs::msg::Frame>::SharedPtr can_frame_subscriber_;
   rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr
-    m_joint_trajectory_subscriber;
+    joint_trajectory_subscriber_;
   rclcpp::Subscription<cybergear_driver_msgs::msg::SetpointStamped>::SharedPtr
-    m_joint_setpoint_subscriber;
+    joint_setpoint_subscriber_;
 
-  rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr m_can_frame_publisher;
-  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr m_joint_state_publisher;
-  rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr m_joint_temperature_publisher;
+  rclcpp::Publisher<can_msgs::msg::Frame>::SharedPtr can_frame_publisher_;
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_publisher_;
+  rclcpp::Publisher<sensor_msgs::msg::Temperature>::SharedPtr joint_temperature_publisher_;
 
-  rclcpp::TimerBase::SharedPtr m_send_can_frame_timer;
-  rclcpp::TimerBase::SharedPtr m_update_parameter_timer;
+  rclcpp::TimerBase::SharedPtr send_can_frame_timer_;
+  rclcpp::TimerBase::SharedPtr update_parameter_timer_;
 
-  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr m_enable_torque_service;
-  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr m_zero_position_service;
+  rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr enable_torque_service_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr zero_position_service_;
 
-  std::unique_ptr<diagnostic_updater::Updater> m_diagnostic_updater;
+  std::unique_ptr<diagnostic_updater::Updater> diagnostic_updater_;
 
-  std::unique_ptr<cybergear_socketcan_driver_node::ParamListener> m_param_listener;
-  std::unique_ptr<cybergear_socketcan_driver_node::Params> m_params;
+  std::unique_ptr<cybergear_socketcan_driver_node::ParamListener> param_listener_;
+  std::unique_ptr<cybergear_socketcan_driver_node::Params> params_;
 
-  SingleJointTrajectoryPoints::SharedPtr m_single_joint_trajectory;
+  SingleJointTrajectoryPoints::SharedPtr single_joint_trajectory_;
 
   void subscribeCanFrameCallback(const can_msgs::msg::Frame::ConstSharedPtr &);
   void subscribeJointTrajectoryCallback(
@@ -112,7 +116,6 @@ private:
   void zeroPositionServiceCallback(
     const std_srvs::srv::Trigger::Request::ConstSharedPtr & request,
     const std_srvs::srv::Trigger::Response::ConstSharedPtr & response);
-
 
   void canFrameDiagnosricsCallback(diagnostic_updater::DiagnosticStatusWrapper &);
 

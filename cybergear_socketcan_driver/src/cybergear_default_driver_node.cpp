@@ -20,68 +20,72 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "cybergear_socketcan_driver_node.hpp"
-
+#include <can_msgs/msg/frame.hpp>
+#include <cybergear_driver_core/cybergear_driver_core.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <trajectory_msgs/msg/joint_trajectory_point.hpp>
-#include <can_msgs/msg/frame.hpp>
-#include <cybergear_driver_core/cybergear_driver_core.hpp>
+
+#include "cybergear_socketcan_driver_node.hpp"
 
 namespace cybergear_socketcan_driver
 {
 class CybergearDefaultDriverNode : public CybergearSocketCanDriverNode
 {
 public:
+  CybergearDefaultDriverNode() = delete;
   explicit CybergearDefaultDriverNode(const rclcpp::NodeOptions &);
-  virtual ~CybergearDefaultDriverNode();
+  CybergearDefaultDriverNode(const CybergearDefaultDriverNode &) = delete;
+  CybergearDefaultDriverNode(CybergearDefaultDriverNode &&) = delete;
+  ~CybergearDefaultDriverNode() override;
+
+  CybergearDefaultDriverNode & operator=(const CybergearDefaultDriverNode &) = delete;
+  CybergearDefaultDriverNode & operator=(CybergearDefaultDriverNode &&) = delete;
 
 protected:
   void procFeedbackJointStateCallback(const sensor_msgs::msg::JointState &) final;
   void sendCanFrameFromTrajectoryCallback(
-    can_msgs::msg::Frame &,
-    const SingleJointTrajectoryPoints &) final;
+    can_msgs::msg::Frame &, const SingleJointTrajectoryPoints &) final;
   void sendCanFrameFromSetpointCallback(
-    can_msgs::msg::Frame &,
-    const cybergear_driver_msgs::msg::SetpointStamped &) final;
+    can_msgs::msg::Frame &, const cybergear_driver_msgs::msg::SetpointStamped &) final;
   void sendChangeRunModeCallback(can_msgs::msg::Frame &) final;
 
 private:
-  float m_last_sense_anguler_position;
+  float last_sense_anguler_position_;
 };
 
 CybergearDefaultDriverNode::CybergearDefaultDriverNode(const rclcpp::NodeOptions & node_options)
 : CybergearSocketCanDriverNode("cybergear_default_driver", node_options),
-  m_last_sense_anguler_position(0.0f) {}
+  last_sense_anguler_position_(0.0F)
+{}
 
 CybergearDefaultDriverNode::~CybergearDefaultDriverNode() {}
 
 void CybergearDefaultDriverNode::procFeedbackJointStateCallback(
   const sensor_msgs::msg::JointState & msg)
 {
-  if (msg.position.size() < 1) {
+  if (msg.position.empty()) {
     return;
   }
-  m_last_sense_anguler_position = msg.position[0];
+  last_sense_anguler_position_ = static_cast<float>(msg.position[0]);
 }
 
 void CybergearDefaultDriverNode::sendCanFrameFromTrajectoryCallback(
-  can_msgs::msg::Frame & msg,
-  const SingleJointTrajectoryPoints & single_joint_trajectory)
+  can_msgs::msg::Frame & msg, const SingleJointTrajectoryPoints & single_joint_trajectory)
 {
   cybergear_driver_core::MoveParam move_param;
 
-  if (0 < single_joint_trajectory.points().size()) {
+  if (!single_joint_trajectory.points().empty()) {
     move_param.position = single_joint_trajectory.getLerpPosition(this->get_clock()->now());
     move_param.velocity = single_joint_trajectory.getLerpVelocity(this->get_clock()->now());
     move_param.effort = single_joint_trajectory.getLerpEffort(this->get_clock()->now());
   } else {
-    move_param.position = m_last_sense_anguler_position;
-    move_param.velocity = 0.0f;
-    move_param.effort = 0.0f;
+    move_param.position = last_sense_anguler_position_;
+    move_param.velocity = 0.0F;
+    move_param.effort = 0.0F;
   }
-  move_param.kp = this->params().pid_gain.kp;
-  move_param.kd = this->params().pid_gain.kd;
+  move_param.kp = static_cast<float>(this->params().pid_gain.kp);
+  move_param.kd = static_cast<float>(this->params().pid_gain.kd);
 
   const auto can_frame = this->packet().createMoveCommand(move_param);
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
@@ -89,16 +93,15 @@ void CybergearDefaultDriverNode::sendCanFrameFromTrajectoryCallback(
 }
 
 void CybergearDefaultDriverNode::sendCanFrameFromSetpointCallback(
-  can_msgs::msg::Frame & msg,
-  const cybergear_driver_msgs::msg::SetpointStamped & setpoint_msg)
+  can_msgs::msg::Frame & msg, const cybergear_driver_msgs::msg::SetpointStamped & setpoint_msg)
 {
   cybergear_driver_core::MoveParam move_param;
 
   move_param.position = setpoint_msg.point.position;
   move_param.velocity = setpoint_msg.point.velocity;
   move_param.effort = setpoint_msg.point.effort;
-  move_param.kp = this->params().pid_gain.kp;
-  move_param.kd = this->params().pid_gain.kd;
+  move_param.kp = static_cast<float>(this->params().pid_gain.kp);
+  move_param.kd = static_cast<float>(this->params().pid_gain.kd);
 
   const auto can_frame = this->packet().createMoveCommand(move_param);
   std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());

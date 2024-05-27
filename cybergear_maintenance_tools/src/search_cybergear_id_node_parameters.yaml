@@ -23,10 +23,16 @@ search_cybergear_id_node:
   primary_id:
     type: int
     default_value: 0
+    validation:
+      bounds<>: [0, 255]
   send_frequency:
     type: double
     default_value: 64.0
+    validation:
+      gt<>: 0.0
   wait_recive_can_frame:
     type: double
     default_value: 0.1
     description: Wait recive CAN msg (seconds)
+    validation:
+      gt<>: 0.0
