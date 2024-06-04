@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include <cstring>
 #include <algorithm>
 #include <array>
 #include <stdexcept>
@@ -67,9 +68,11 @@ public:
 
   std::array<uint8_t, 4> toFourBytes(const float value)
   {
+    constexpr size_t kArrayLength = 4;
     const float clamped_float = toClampedFloat(value);
-    const uint8_t * raw_bytes = reinterpret_cast<const uint8_t *>(&clamped_float);
-    return {raw_bytes[0], raw_bytes[1], raw_bytes[2], raw_bytes[3]};
+    std::array<uint8_t, kArrayLength> raw_bytes;
+    std::memcpy(raw_bytes.data(), &clamped_float, sizeof(uint8_t) * kArrayLength);
+    return raw_bytes;
   }
 
   template <unsigned int Size>
