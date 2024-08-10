@@ -26,13 +26,13 @@ cybergear_socketcan_driver_node:
     type: int
     default_value: 0
     validation:
-      bounds<>: [0, 255]
+      bounds<>: [0, 127]
   device_id:
     description: Identifier parameter for specifying the recipient in CAN communication (CyberGear ID)
     type: int
     default_value: 127
     validation:
-      bounds<>: [0, 255]
+      bounds<>: [0, 127]
   send_frequency:
     description: Transmission interval parameter for CAN frame (Hz)
     type: double
