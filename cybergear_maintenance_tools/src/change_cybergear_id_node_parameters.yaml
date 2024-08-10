@@ -24,17 +24,17 @@ change_cybergear_id_node:
     type: int
     default_value: 0
     validation:
-      bounds<>: [0, 255]
+      bounds<>: [0, 127]
   device_id:
     type: int
     default_value: 127
     validation:
-      bounds<>: [0, 255]
+      bounds<>: [0, 127]
   target_id:
     type: int
     default_value: 127
     validation:
-      bounds<>: [0, 255]
+      bounds<>: [0, 127]
   send_frequency:
     type: double
     default_value: 64.0
