@@ -28,7 +28,7 @@ ament_auto_add_library(${PROJECT_NAME}_components SHARED
 )
 target_link_libraries(${PROJECT_NAME}_components
   search_cybergear_id_node_parameters
-  cybergear_driver_core::cybergear_driver_core
+  cybergear_driver_core
   change_cybergear_id_node_parameters
 )
 
