@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>cybergear_control</name>
+  <version>0.0.1</version>
+  <description>ROS2 control driver for cybergear motors</description>
+
+  <maintainer email="naoki.takahashi060@gmail.com">Naoki Takahashi</maintainer>
+  <author email="bierjou@gmail.com">Johannes Bier</author>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <build_depend>rclcpp</build_depend>
+  <build_depend>rclcpp_lifecycle</build_depend>
+  <build_depend>lifecycle_msgs</build_depend>
+  <build_depend>pluginlib</build_depend>
+  <build_depend>hardware_interface</build_depend>
+  <build_depend>cybergear_driver_core</build_depend>
+  <build_depend>ros2_socketcan</build_depend>
+  <build_depend>can_msgs</build_depend>
+
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>rclcpp_lifecycle</exec_depend>
+  <exec_depend>lifecycle_msgs</exec_depend>
+  <exec_depend>pluginlib</exec_depend>
+  <exec_depend>hardware_interface</exec_depend>
+  <exec_depend>ros2_control</exec_depend>
+  <exec_depend>ros2_controllers</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <test_depend>ros2launch</test_depend>
+  <test_depend>launch</test_depend>
+  <test_depend>launch_ros</test_depend>
+
+  <test_depend>urdf</test_depend>
+  <test_depend>xacro</test_depend>
+  <test_depend>rviz2</test_depend>
+  <test_depend>joint_state_publisher_gui</test_depend>
+  <test_depend>robot_state_publisher</test_depend>
+  <test_depend>ros2_control</test_depend>
+  <test_depend>ros2_controllers</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
