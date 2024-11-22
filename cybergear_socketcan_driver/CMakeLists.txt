@@ -34,7 +34,7 @@ target_compile_features(${PROJECT_NAME}_components
 )
 target_link_libraries(${PROJECT_NAME}_components
   cybergear_socketcan_driver_node_params
-  cybergear_driver_core::cybergear_driver_core
+  cybergear_driver_core
 )
 rclcpp_components_register_node(${PROJECT_NAME}_components
   PLUGIN "cybergear_socketcan_driver::CybergearSocketCanDriverNode"
