@@ -1,12 +1,13 @@
 #pragma once
 
+#include <stdint.h>
+
 #include <atomic>
 #include <mutex>
 #include <thread>
 
 #include "can_msgs/msg/frame.hpp"
-#include "cybergear_driver_core/cybergear_driver_core.hpp"
-#include "cybergear_driver_core/cybergear_packet_param.hpp"
+#include "cybergear_driver_core/cybergear_packet.hpp"
 #include "hardware_interface/actuator_interface.hpp"
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
@@ -53,19 +54,14 @@ public:
 
 private:
   void receive();
-  return_type send(const can_msgs::msg::Frame& msg);
+  return_type send(const cybergear_driver_core::CanFrame& msg);
 
   return_type switchCommandInterface();
 
 private:
   std::unique_ptr<cybergear_driver_core::CybergearPacket> packet_;
 
-  enum class CommandInterfaceType {
-    POSITION = 0,
-    VELOCITY = 1,
-    TORQUE = 2,
-  };
-  CommandInterfaceType command_type_;
+  uint8_t command_mode_;
 
   bool state_interface_position_ = false;
   bool state_interface_velocity_ = false;
@@ -73,7 +69,6 @@ private:
 
   double joint_command_;
   double last_joint_command_;
-  can_msgs::msg::Frame joint_command_template_;
   std::vector<double> joint_states_;
 
   std::string can_filters_;
