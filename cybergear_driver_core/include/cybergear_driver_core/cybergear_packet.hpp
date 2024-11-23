@@ -200,22 +200,22 @@ public:
     return createChangeRunMode(run_modes::CURRENT);
   }
 
-  float persePosition(const CanData & data) const
+  float parsePosition(const CanData & data) const
   {
     return anguler_position_converter_->toFloat<8>(data, 0);
   }
 
-  float perseVelocity(const CanData & data) const
+  float parseVelocity(const CanData & data) const
   {
     return anguler_velocity_converter_->toFloat<8>(data, 2);
   }
 
-  float perseEffort(const CanData & data) const
+  float parseEffort(const CanData & data) const
   {
     return anguler_effort_converter_->toFloat<8>(data, 4);
   }
 
-  float perseTemperature(const CanData & data) const
+  float parseTemperature(const CanData & data) const
   {
     return temperature_converter_->toFloat<8>(data, 6);
   }

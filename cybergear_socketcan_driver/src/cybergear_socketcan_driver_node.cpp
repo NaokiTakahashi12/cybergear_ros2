@@ -208,7 +208,7 @@ void CybergearSocketCanDriverNode::sendChangeRunModeCallback(can_msgs::msg::Fram
   msg.id = can_frame->id;
 }
 
-// TODO(Naoki Takahashi) perse read ram parameter
+// TODO(Naoki Takahashi) parse read ram parameter
 void CybergearSocketCanDriverNode::subscribeCanFrameCallback(
   const can_msgs::msg::Frame::ConstSharedPtr & msg)
 {
@@ -396,9 +396,9 @@ void CybergearSocketCanDriverNode::procFeedbackPacket(const can_msgs::msg::Frame
 
     joint_state_msg->header = header_msg;
     joint_state_msg->name.push_back(params_->joint_name);
-    joint_state_msg->position.push_back(packet_->persePosition(msg.data));
-    joint_state_msg->velocity.push_back(packet_->perseVelocity(msg.data));
-    joint_state_msg->effort.push_back(packet_->perseEffort(msg.data));
+    joint_state_msg->position.push_back(packet_->parsePosition(msg.data));
+    joint_state_msg->velocity.push_back(packet_->parseVelocity(msg.data));
+    joint_state_msg->effort.push_back(packet_->parseEffort(msg.data));
 
     if (!last_subscribe_joint_state_) {
       last_subscribe_joint_state_ = std::make_unique<sensor_msgs::msg::JointState>();
@@ -413,7 +413,7 @@ void CybergearSocketCanDriverNode::procFeedbackPacket(const can_msgs::msg::Frame
     auto temperature_msg = std::make_unique<sensor_msgs::msg::Temperature>();
 
     temperature_msg->header = header_msg;
-    temperature_msg->temperature = packet_->perseTemperature(msg.data);
+    temperature_msg->temperature = packet_->parseTemperature(msg.data);
     temperature_msg->variance = 0.0;  // unknown
 
     procFeedbackTemperatureCallabck(*temperature_msg);
