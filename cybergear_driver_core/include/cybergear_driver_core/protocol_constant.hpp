@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 namespace cybergear_driver_core
 {
 namespace commands
