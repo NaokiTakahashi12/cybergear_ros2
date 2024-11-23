@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include <atomic>
+#include <cstdint>
 #include <mutex>
 #include <thread>
 
@@ -54,21 +55,22 @@ public:
 
 private:
   void receive();
-  return_type send(const cybergear_driver_core::CanFrame& msg);
+  return_type send(const cybergear_driver_core::CanFrame&);
 
-  return_type switchCommandInterface();
+  return_type switchCommandInterface(uint8_t);
 
 private:
   std::unique_ptr<cybergear_driver_core::CybergearPacket> packet_;
 
+  uint8_t active_interface_;
   uint8_t command_mode_;
 
   bool state_interface_position_ = false;
   bool state_interface_velocity_ = false;
   bool state_interface_torque_ = false;
 
-  double joint_command_;
-  double last_joint_command_;
+  std::vector<double> joint_commands_;
+  std::vector<double> last_joint_commands_;
   std::vector<double> joint_states_;
 
   std::string can_filters_;
@@ -82,7 +84,7 @@ private:
   std::unique_ptr<drivers::socketcan::SocketCanReceiver> receiver_;
   std::thread receiver_thread_;
 
-  std::atomic_bool is_active_;
+  std::atomic_bool is_active_ = false;
   can_msgs::msg::Frame last_received_frame_;
   std::mutex last_frame_mutex_;
 };
