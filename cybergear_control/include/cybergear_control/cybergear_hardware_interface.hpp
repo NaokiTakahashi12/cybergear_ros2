@@ -6,6 +6,7 @@
 
 #include "can_msgs/msg/frame.hpp"
 #include "cybergear_driver_core/cybergear_driver_core.hpp"
+#include "cybergear_driver_core/cybergear_packet_param.hpp"
 #include "hardware_interface/actuator_interface.hpp"
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
@@ -50,7 +51,11 @@ public:
   return_type read(const rclcpp::Time&, const rclcpp::Duration&) override;
   return_type write(const rclcpp::Time&, const rclcpp::Duration&) override;
 
+private:
   void receive();
+  return_type send(const can_msgs::msg::Frame& msg);
+
+  return_type switchCommandInterface();
 
 private:
   std::unique_ptr<cybergear_driver_core::CybergearPacket> packet_;
@@ -68,7 +73,7 @@ private:
 
   double joint_command_;
   double last_joint_command_;
-  can_msgs::msg::Frame last_joint_command_frame_;
+  can_msgs::msg::Frame joint_command_template_;
   std::vector<double> joint_states_;
 
   std::string can_filters_;
