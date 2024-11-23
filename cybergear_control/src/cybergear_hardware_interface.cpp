@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
+#include <exception>
 #include <memory>
 #include <mutex>
 #include <rclcpp/logging.hpp>
@@ -122,8 +124,6 @@ CallbackReturn CybergearActuator::on_configure(
   }
   receiver_thread_ = std::thread(&CybergearActuator::receive, this);
 
-  is_active_ = false;
-
   RCLCPP_DEBUG(get_logger(), "Cybergear driver successfully configured.");
   return CallbackReturn::SUCCESS;
 }
@@ -133,11 +133,7 @@ CallbackReturn CybergearActuator::on_activate(
   // TODO: Send motor enable over CAN
   is_active_ = true;
 
-  joint_states_[0] = 0;
-  joint_states_[1] = 0;
-  joint_states_[2] = 0;
-
-  switchCommandInterface();
+  switchCommandInterface(active_interface_);
 
   RCLCPP_INFO(get_logger(), "Cybergear driver activated.");
   return CallbackReturn::SUCCESS;
@@ -147,6 +143,9 @@ CallbackReturn CybergearActuator::on_deactivate(
     const rclcpp_lifecycle::State& /*previous_state*/) {
   // TODO: Send motor disable over CAN
   is_active_ = false;
+
+  // do not reset active_interface_, becase this will be reclaimed on_activate
+  switchCommandInterface(cybergear_driver_core::run_modes::OPERATION);
 
   RCLCPP_DEBUG(get_logger(), "Cybergear driver deactivate.");
   return CallbackReturn::SUCCESS;
@@ -176,8 +175,6 @@ CallbackReturn CybergearActuator::on_error(
 
 CallbackReturn CybergearActuator::on_init(
     const hardware_interface::HardwareInfo& info) {
-  RCLCPP_INFO(get_logger(), "PLUGIN ON INIT START");
-
   if (ActuatorInterface::on_init(info) != CallbackReturn::SUCCESS) {
     return CallbackReturn::ERROR;
   }
@@ -232,13 +229,15 @@ CallbackReturn CybergearActuator::on_init(
     return hardware_interface::CallbackReturn::ERROR;
   }
 
+  active_interface_ = cybergear_driver_core::run_modes::OPERATION;
+  command_mode_ = cybergear_driver_core::run_modes::OPERATION;
   const auto& command_interface = joint.command_interfaces[0];
   if (command_interface.name == hardware_interface::HW_IF_POSITION) {
-    command_mode_ = cybergear_driver_core::run_modes::POSITION;
+    active_interface_ = cybergear_driver_core::run_modes::POSITION;
   } else if (command_interface.name == hardware_interface::HW_IF_VELOCITY) {
-    command_mode_ = cybergear_driver_core::run_modes::SPEED;
+    active_interface_ = cybergear_driver_core::run_modes::SPEED;
   } else if (command_interface.name == hardware_interface::HW_IF_TORQUE) {
-    command_mode_ = cybergear_driver_core::run_modes::CURRENT;
+    active_interface_ = cybergear_driver_core::run_modes::CURRENT;
   } else {
     RCLCPP_FATAL(get_logger(),
                  "Joint '%s' can not be controlled with '%s' command "
@@ -253,8 +252,8 @@ CallbackReturn CybergearActuator::on_init(
               command_interface.name.c_str(), joint.name.c_str());
 
   joint_states_.assign(3, std::numeric_limits<double>::quiet_NaN());
-  joint_command_ = std::numeric_limits<double>::quiet_NaN();
-  last_joint_command_ = joint_command_;
+  joint_commands_.assign(3, std::numeric_limits<double>::quiet_NaN());
+  last_joint_commands_ = joint_commands_;
 
   return CallbackReturn::SUCCESS;
 }
@@ -264,13 +263,13 @@ std::vector<StateInterface> CybergearActuator::export_state_interfaces() {
 
   state_interfaces.emplace_back(hardware_interface::StateInterface(
       info_.joints[0].name, hardware_interface::HW_IF_POSITION,
-      &joint_states_[0]));
+      &joint_states_[cybergear_driver_core::run_modes::POSITION]));
   state_interfaces.emplace_back(hardware_interface::StateInterface(
       info_.joints[0].name, hardware_interface::HW_IF_VELOCITY,
-      &joint_states_[1]));
+      &joint_states_[cybergear_driver_core::run_modes::SPEED]));
   state_interfaces.emplace_back(hardware_interface::StateInterface(
       info_.joints[0].name, hardware_interface::HW_IF_TORQUE,
-      &joint_states_[2]));
+      &joint_states_[cybergear_driver_core::run_modes::CURRENT]));
 
   return state_interfaces;
 }
@@ -278,19 +277,15 @@ std::vector<StateInterface> CybergearActuator::export_state_interfaces() {
 std::vector<CommandInterface> CybergearActuator::export_command_interfaces() {
   std::vector<CommandInterface> command_interfaces;
 
-  if (command_mode_ == cybergear_driver_core::run_modes::POSITION) {
-    command_interfaces.emplace_back(hardware_interface::CommandInterface(
-        info_.joints[0].name, hardware_interface::HW_IF_POSITION,
-        &joint_command_));
-  } else if (command_mode_ == cybergear_driver_core::run_modes::SPEED) {
-    command_interfaces.emplace_back(hardware_interface::CommandInterface(
-        info_.joints[0].name, hardware_interface::HW_IF_VELOCITY,
-        &joint_command_));
-  } else if (command_mode_ == cybergear_driver_core::run_modes::CURRENT) {
-    command_interfaces.emplace_back(hardware_interface::CommandInterface(
-        info_.joints[0].name, hardware_interface::HW_IF_TORQUE,
-        &joint_command_));
-  }
+  command_interfaces.emplace_back(hardware_interface::CommandInterface(
+      info_.joints[0].name, hardware_interface::HW_IF_POSITION,
+      &joint_commands_[cybergear_driver_core::run_modes::POSITION]));
+  command_interfaces.emplace_back(hardware_interface::CommandInterface(
+      info_.joints[0].name, hardware_interface::HW_IF_VELOCITY,
+      &joint_commands_[cybergear_driver_core::run_modes::SPEED]));
+  command_interfaces.emplace_back(hardware_interface::CommandInterface(
+      info_.joints[0].name, hardware_interface::HW_IF_TORQUE,
+      &joint_commands_[cybergear_driver_core::run_modes::CURRENT]));
 
   return command_interfaces;
 }
@@ -298,14 +293,85 @@ std::vector<CommandInterface> CybergearActuator::export_command_interfaces() {
 hardware_interface::return_type CybergearActuator::prepare_command_mode_switch(
     const std::vector<std::string>& start_interfaces,
     const std::vector<std::string>& stop_interfaces) {
-  // TODO:
+  // Prepare for new command modes
+  std::vector<uint8_t> new_modes = {};
+  for (std::string key : start_interfaces) {
+    if (key ==
+        info_.joints[0].name + "/" + hardware_interface::HW_IF_POSITION) {
+      new_modes.push_back(cybergear_driver_core::run_modes::POSITION);
+    }
+    if (key ==
+        info_.joints[0].name + "/" + hardware_interface::HW_IF_VELOCITY) {
+      new_modes.push_back(cybergear_driver_core::run_modes::SPEED);
+    }
+    if (key == info_.joints[0].name + "/" + hardware_interface::HW_IF_TORQUE) {
+      new_modes.push_back(cybergear_driver_core::run_modes::CURRENT);
+    }
+  }
+
+  if (new_modes.size() > 1) {
+    return hardware_interface::return_type::ERROR;
+  }
+
+  if (command_mode_ == cybergear_driver_core::run_modes::OPERATION) {
+    for (const std::string& key : stop_interfaces) {
+      if (key.find(info_.joints[0].name) != std::string::npos) {
+        RCLCPP_ERROR(get_logger(), "Can not stop an unclaimed interface");
+        return return_type::ERROR;
+      }
+    }
+  } else {
+    std::string current_interface_key = info_.joints[0].name + "/";
+    switch (command_mode_) {
+      case cybergear_driver_core::run_modes::POSITION:
+        current_interface_key += hardware_interface::HW_IF_POSITION;
+        break;
+      case cybergear_driver_core::run_modes::SPEED:
+        current_interface_key += hardware_interface::HW_IF_VELOCITY;
+        break;
+      case cybergear_driver_core::run_modes::CURRENT:
+        current_interface_key += hardware_interface::HW_IF_TORQUE;
+        break;
+    }
+
+    for (const std::string& key : stop_interfaces) {
+      if (key.find(info_.joints[0].name) != std::string::npos) {
+        if (key == current_interface_key) {
+          continue;
+        }
+        RCLCPP_ERROR(get_logger(), "Can not stop an unclaimed interface");
+        return return_type::ERROR;
+      }
+    }
+  }
+
   return hardware_interface::return_type::OK;
 }
 
 hardware_interface::return_type CybergearActuator::perform_command_mode_switch(
     const std::vector<std::string>& start_interfaces,
     const std::vector<std::string>& stop_interfaces) {
-  // TODO:
+  for (const std::string& key : stop_interfaces) {
+    if (key.find(info_.joints[0].name) != std::string::npos) {
+      joint_commands_[command_mode_] = 0;
+      active_interface_ = cybergear_driver_core::run_modes::OPERATION;
+    }
+  }
+
+  for (const std::string& key : start_interfaces) {
+    if (key ==
+        info_.joints[0].name + "/" + hardware_interface::HW_IF_POSITION) {
+      active_interface_ = cybergear_driver_core::run_modes::POSITION;
+    } else if (key == info_.joints[0].name + "/" +
+                          hardware_interface::HW_IF_VELOCITY) {
+      active_interface_ = cybergear_driver_core::run_modes::SPEED;
+    } else if (key ==
+               info_.joints[0].name + "/" + hardware_interface::HW_IF_TORQUE) {
+      active_interface_ = cybergear_driver_core::run_modes::CURRENT;
+    }
+  }
+
+  switchCommandInterface(active_interface_);
   return hardware_interface::return_type::OK;
 }
 
@@ -314,52 +380,39 @@ return_type CybergearActuator::read(const rclcpp::Time& time,
   // Implement the read method getting the states from the hardware and
   // storing them to internal variables defined in export_state_interfaces.
 
+  // Testing
+  joint_states_[command_mode_] = joint_commands_[command_mode_];
   switch (command_mode_) {
-    case cybergear_driver_core::run_modes::POSITION:
-      joint_states_[0] = joint_command_;
-      joint_states_[1] = 0;
-      joint_states_[2] = 0;
-      break;
     case cybergear_driver_core::run_modes::SPEED:
-      joint_states_[0] += joint_command_ * period.seconds();
-      joint_states_[1] = joint_command_;
-      joint_states_[2] = 0;
-      break;
-    case cybergear_driver_core::run_modes::CURRENT:
-      joint_states_[0] = 0;
-      joint_states_[1] = 0;
-      joint_states_[2] = joint_command_;
+      joint_states_[0] += joint_commands_[command_mode_] * period.seconds();
       break;
   }
-
-  RCLCPP_INFO(get_logger(), "Joint command: %f", joint_command_);
-  RCLCPP_INFO(get_logger(), "Cybergear joint states %f, %f, %f",
-              joint_states_[0], joint_states_[1], joint_states_[2]);
 
   return return_type::OK;
 }
 
 return_type CybergearActuator::write(const rclcpp::Time& time,
                                      const rclcpp::Duration& period) {
-  if (std::isnan(joint_command_)) return return_type::OK;
+  if (std::isnan(joint_commands_[command_mode_])) return return_type::OK;
 
-  // testing
-  if (joint_command_ != joint_states_[1]) {
-    joint_states_[0] = 0;
-    joint_states_[1] = joint_command_;
-    joint_states_[2] = 0;
-  }
+  // the cybergear motor has its own motor controller which doesn't need to be
+  // updated with the same value again.
+  if (last_joint_commands_[command_mode_] == joint_commands_[command_mode_])
+    return return_type::OK;
 
   cybergear_driver_core::CanFrame frame;
   switch (command_mode_) {
     case cybergear_driver_core::run_modes::POSITION:
-      frame = *packet_->createPositionCommand(joint_command_);
+      frame = *packet_->createPositionCommand(
+          joint_commands_[cybergear_driver_core::run_modes::POSITION]);
       break;
     case cybergear_driver_core::run_modes::SPEED:
-      frame = *packet_->createVelocityCommand(joint_command_);
+      frame = *packet_->createVelocityCommand(
+          joint_commands_[cybergear_driver_core::run_modes::SPEED]);
       break;
     case cybergear_driver_core::run_modes::CURRENT:
-      frame = *packet_->createCurrentCommand(joint_command_);
+      frame = *packet_->createCurrentCommand(
+          joint_commands_[cybergear_driver_core::run_modes::CURRENT]);
       break;
   }
 
@@ -431,14 +484,18 @@ return_type CybergearActuator::send(
 }
 
 // TODO: Evaluate if successful
-return_type CybergearActuator::switchCommandInterface() {
+return_type CybergearActuator::switchCommandInterface(
+    uint8_t new_command_mode) {
   RCLCPP_INFO(get_logger(), "Send reset torque id");
   cybergear_driver_core::CanFrame frame;
   frame.id = packet_->frameId().getResetTorqueId();
   send(frame);
 
   RCLCPP_INFO(get_logger(), "Send change run mode");
-  switch (command_mode_) {
+  switch (new_command_mode) {
+    case cybergear_driver_core::run_modes::OPERATION:
+      frame = *packet_->createChangeToOperationModeCommand();
+      break;
     case cybergear_driver_core::run_modes::POSITION:
       frame = *packet_->createChangeToPositionModeCommand();
       break;
@@ -451,9 +508,14 @@ return_type CybergearActuator::switchCommandInterface() {
   }
   send(frame);
 
-  RCLCPP_INFO(get_logger(), "Send enable torque");
-  frame.id = packet_->frameId().getEnableTorqueId();
-  return send(frame);
+  if (new_command_mode != cybergear_driver_core::run_modes::OPERATION) {
+    RCLCPP_INFO(get_logger(), "Send enable torque");
+    frame.id = packet_->frameId().getEnableTorqueId();
+    send(frame);
+  }
+
+  command_mode_ = new_command_mode;
+  return return_type::OK;
 }
 
 }  // namespace cybergear_control
