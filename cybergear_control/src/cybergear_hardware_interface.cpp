@@ -2,11 +2,14 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
+#include <memory>
 #include <mutex>
 #include <rclcpp/logging.hpp>
 #include <string>
 
-#include "can_msgs/msg/frame.hpp"
+#include "cybergear_driver_core/cybergear_packet.hpp"
+#include "cybergear_driver_core/cybergear_packet_param.hpp"
 #include "hardware_interface/actuator_interface.hpp"
 #include "hardware_interface/types/hardware_interface_return_values.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
@@ -59,6 +62,42 @@ CallbackReturn CybergearActuator::on_configure(
               use_bus_time_ ? "true" : "false");
   RCLCPP_INFO(get_logger(), "interval(s): %f", interval_sec);
 
+  cybergear_driver_core::CybergearPacketParam params;
+  params.device_id = std::stoi(info_.hardware_parameters["device_id"]);
+  params.primary_id = std::stoi(info_.hardware_parameters["primary_id"]);
+  params.max_position = std::stof(info_.hardware_parameters["max_position"]);
+  params.min_position = std::stof(info_.hardware_parameters["min_position"]);
+  params.max_velocity = std::stof(info_.hardware_parameters["max_velocity"]);
+  params.min_velocity = std::stof(info_.hardware_parameters["min_velocity"]);
+  params.max_effort = std::stof(info_.hardware_parameters["max_effort"]);
+  params.min_effort = std::stof(info_.hardware_parameters["min_effort"]);
+  params.max_gain_kp = std::stof(info_.hardware_parameters["max_gain_kp"]);
+  params.min_gain_kp = std::stof(info_.hardware_parameters["min_gain_kp"]);
+  params.max_gain_kd = std::stof(info_.hardware_parameters["max_gain_kd"]);
+  params.min_gain_kd = std::stof(info_.hardware_parameters["min_gain_kd"]);
+  params.max_current = std::stof(info_.hardware_parameters["max_current"]);
+  params.min_current = std::stof(info_.hardware_parameters["min_current"]);
+  params.temperature_scale =
+      std::stof(info_.hardware_parameters["temperature_scale"]);
+
+  RCLCPP_INFO(get_logger(), "device_id: %d", params.device_id);
+  RCLCPP_INFO(get_logger(), "primary_id: %d", params.primary_id);
+  RCLCPP_INFO(get_logger(), "max_position: %f", params.max_position);
+  RCLCPP_INFO(get_logger(), "min_position: %f", params.min_position);
+  RCLCPP_INFO(get_logger(), "max_velocity: %f", params.max_velocity);
+  RCLCPP_INFO(get_logger(), "min_velocity: %f", params.min_velocity);
+  RCLCPP_INFO(get_logger(), "max_effort: %f", params.max_effort);
+  RCLCPP_INFO(get_logger(), "min_effort: %f", params.min_effort);
+  RCLCPP_INFO(get_logger(), "max_gain_kp: %f", params.max_gain_kp);
+  RCLCPP_INFO(get_logger(), "min_gain_kp: %f", params.min_gain_kp);
+  RCLCPP_INFO(get_logger(), "max_gain_kd: %f", params.max_gain_kd);
+  RCLCPP_INFO(get_logger(), "min_gain_kd: %f", params.min_gain_kd);
+  RCLCPP_INFO(get_logger(), "max_current: %f", params.max_current);
+  RCLCPP_INFO(get_logger(), "min_current: %f", params.min_current);
+  RCLCPP_INFO(get_logger(), "temperature_scale: %f", params.temperature_scale);
+
+  packet_ = std::make_unique<cybergear_driver_core::CybergearPacket>(params);
+
   try {
     sender_ = std::make_unique<drivers::socketcan::SocketCanSender>(
         can_interface_, false);
@@ -96,6 +135,8 @@ CallbackReturn CybergearActuator::on_activate(
   joint_states_[0] = 0;
   joint_states_[1] = 0;
   joint_states_[2] = 0;
+
+  switchCommandInterface();
 
   RCLCPP_INFO(get_logger(), "Cybergear driver activated.");
   return CallbackReturn::SUCCESS;
@@ -215,14 +256,14 @@ CallbackReturn CybergearActuator::on_init(
   last_joint_command_ = joint_command_;
 
   constexpr uint8_t kDlc = 8;
-  last_joint_command_frame_ =
+  joint_command_template_ =
       can_msgs::msg::Frame(rosidl_runtime_cpp::MessageInitialization::ZERO);
-  last_joint_command_frame_.header.frame_id = info_.joints[0].name;
-  last_joint_command_frame_.header.stamp = get_clock()->now();
-  last_joint_command_frame_.is_rtr = false;
-  last_joint_command_frame_.is_extended = false;
-  last_joint_command_frame_.is_error = false;
-  last_joint_command_frame_.dlc = kDlc;
+  joint_command_template_.header.frame_id = info_.joints[0].name;
+  joint_command_template_.header.stamp = get_clock()->now();
+  joint_command_template_.is_rtr = false;
+  joint_command_template_.is_extended = false;
+  joint_command_template_.is_error = false;
+  joint_command_template_.dlc = kDlc;
 
   return CallbackReturn::SUCCESS;
 }
@@ -284,19 +325,19 @@ return_type CybergearActuator::read(const rclcpp::Time& time,
 
   switch (command_type_) {
     case CommandInterfaceType::POSITION:
-      joint_states[0] = joint_command_;
+      joint_states_[0] = joint_command_;
       joint_states_[1] = 0;
       joint_states_[2] = 0;
       break;
     case CommandInterfaceType::VELOCITY:
-      joint_states[0] += joint_command_ * period.seconds();
-      joint_states[1] = joint_command_;
+      joint_states_[0] += joint_command_ * period.seconds();
+      joint_states_[1] = joint_command_;
       joint_states_[2] = 0;
       break;
     case CommandInterfaceType::TORQUE:
       joint_states_[0] = 0;
       joint_states_[1] = 0;
-      joint_states[2] = joint_command_;
+      joint_states_[2] = joint_command_;
       break;
   }
 
@@ -309,46 +350,34 @@ return_type CybergearActuator::read(const rclcpp::Time& time,
 
 return_type CybergearActuator::write(const rclcpp::Time& time,
                                      const rclcpp::Duration& period) {
-  if (last_joint_command != joint_command_) {
-    last_joint_command_frame_.header.stamp = get_clock()->now();
-  }
+  if (std::isnan(joint_command_)) return return_type::OK;
 
-  if (joint_command_ != joint_states[1]) {
+  // testing
+  if (joint_command_ != joint_states_[1]) {
     joint_states_[0] = 0;
-    joint_states[1] = joint_command_;
+    joint_states_[1] = joint_command_;
     joint_states_[2] = 0;
   }
 
-  using drivers::socketcan::CanId;
-  using drivers::socketcan::ExtendedFrame;
-  using drivers::socketcan::FrameType;
-  using drivers::socketcan::StandardFrame;
+  can_msgs::msg::Frame msg = joint_command_template_;
+  msg.header.stamp = get_clock()->now();
 
-  // TODO: Set msg value
-  can_msgs::msg::Frame msg;
-
-  FrameType type;
-  if (msg.is_rtr) {
-    type = FrameType::REMOTE;
-  } else if (msg.is_error) {
-    type = FrameType::ERROR;
-  } else {
-    type = FrameType::DATA;
+  cybergear_driver_core::CanFrameUniquePtr can_frame;
+  switch (command_type_) {
+    case CommandInterfaceType::POSITION:
+      can_frame = packet_->createPositionCommand(joint_command_);
+      break;
+    case CommandInterfaceType::VELOCITY:
+      can_frame = packet_->createVelocityCommand(joint_command_);
+      break;
+    case CommandInterfaceType::TORQUE:
+      can_frame = packet_->createCurrentCommand(joint_command_);
+      break;
   }
+  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
+  msg.id = can_frame->id;
 
-  drivers::socketcan::CanId send_id =
-      msg.is_extended ? CanId(msg.id, 0, type, ExtendedFrame)
-                      : CanId(msg.id, 0, type, StandardFrame);
-  try {
-    sender->send(msg.data.data(), msg.dlc, send_id, timeout_ns_);
-  } catch (const std::exception& ex) {
-    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
-                         "Error sending CAN message: %s - %s",
-                         can_interface_.c_str(), ex.what());
-    return return_type::ERROR;
-  }
-
-  return return_type::OK;
+  return send(msg);
 }
 
 void CybergearActuator::receive() {
@@ -366,7 +395,7 @@ void CybergearActuator::receive() {
     }
 
     try {
-      receive_id = receiver->receive(frame.data.data(), interval_ns_);
+      receive_id = receiver_->receive(frame.data.data(), interval_ns_);
     } catch (const std::exception& ex) {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
                            "Error receiving CAN message: %s - %s",
@@ -388,10 +417,54 @@ void CybergearActuator::receive() {
     frame.dlc = receive_id.length();
 
     {
-      std::lock_guard<std::mutex> guard(last_frame_mutex);
+      std::lock_guard<std::mutex> guard(last_frame_mutex_);
       last_received_frame_ = frame;
     }
   }
+}
+
+// TODO: send message data directly and remove dependency on can_msgs
+return_type CybergearActuator::send(const can_msgs::msg::Frame& msg) {
+  using drivers::socketcan::CanId;
+  using drivers::socketcan::FrameType;
+  using drivers::socketcan::StandardFrame;
+
+  RCLCPP_INFO(get_logger(), "Send can msg with id %d", msg.id);
+  CanId send_id(msg.id, 0, FrameType::DATA, StandardFrame);
+  RCLCPP_INFO(get_logger(), "CanId constructed");
+  try {
+    sender_->send(msg.data.data(), msg.dlc, send_id, timeout_ns_);
+  } catch (const std::exception& ex) {
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000,
+                         "Error sending CAN message: %s - %s",
+                         can_interface_.c_str(), ex.what());
+    return return_type::ERROR;
+  }
+
+  return return_type::OK;
+}
+
+return_type CybergearActuator::switchCommandInterface() {
+  can_msgs::msg::Frame msg = joint_command_template_;
+  msg.header.stamp = get_clock()->now();
+
+  cybergear_driver_core::CanFrameUniquePtr can_frame;
+  switch (command_type_) {
+    case CommandInterfaceType::POSITION:
+      can_frame = packet_->createChangeToPositionModeCommand();
+      break;
+    case CommandInterfaceType::VELOCITY:
+      can_frame = packet_->createChangeToVelocityModeCommand();
+      break;
+    case CommandInterfaceType::TORQUE:
+      can_frame = packet_->createChangeToCurrentModeCommand();
+      break;
+  }
+  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
+  msg.id = can_frame->id;
+
+  RCLCPP_INFO(get_logger(), "Send change to command interface mode msg");
+  return send(msg);
 }
 
 }  // namespace cybergear_control

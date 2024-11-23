@@ -58,6 +58,21 @@
       <param name="timeout_sec">3.0</param>
       <param name="use_bus_time">false</param>
       <param name="interval_sec">0.5</param>
+      <param name="device_id">127</param>
+      <param name="primary_id">0</param>
+      <param name="max_position">12.56637061</param>
+      <param name="min_position">-12.56637061</param>
+      <param name="max_velocity">30.0</param>
+      <param name="min_velocity">-30.0</param>
+      <param name="max_effort">12.0</param>
+      <param name="min_effort">-12.0</param>
+      <param name="max_gain_kp">500.0</param>
+      <param name="min_gain_kp">0.0</param>
+      <param name="max_gain_kd">5.0</param>
+      <param name="min_gain_kd">0.0</param>
+      <param name="max_current">23.0</param>
+      <param name="min_current">-23.0</param>
+      <param name="temperature_scale">0.1</param>
     </hardware>
     <joint name="wheel_joint">
       <command_interface name="velocity">
