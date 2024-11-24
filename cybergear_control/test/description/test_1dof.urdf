@@ -54,9 +54,8 @@
   <ros2_control name="CybergearMotorWheelJoint" type="actuator">
     <hardware>
       <plugin>cybergear_control/CybergearActuator</plugin>
-      <param name="can_interface">vcan0</param>
+      <param name="can_interface">can0</param>
       <param name="timeout_sec">3.0</param>
-      <param name="use_bus_time">false</param>
       <param name="interval_sec">0.5</param>
       <param name="device_id">127</param>
       <param name="primary_id">0</param>
