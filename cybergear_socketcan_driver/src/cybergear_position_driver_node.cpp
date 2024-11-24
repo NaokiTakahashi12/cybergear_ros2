@@ -21,7 +21,6 @@
 // SOFTWARE.
 
 #include <cmath>
-#include <vector>
 
 #include <can_msgs/msg/frame.hpp>
 #include <cybergear_socketcan_driver/single_joint_trajectory_points.hpp>
@@ -84,23 +83,23 @@ void CybergearPositionDriverNode::sendCanFrameFromTrajectoryCallback(
     position = last_sense_anguler_position_;
   }
   const auto can_frame = this->packet().createPositionCommand(position);
-  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
-  msg.id = can_frame->id;
+  std::copy(can_frame.data.cbegin(), can_frame.data.cend(), msg.data.begin());
+  msg.id = can_frame.id;
 }
 
 void CybergearPositionDriverNode::sendCanFrameFromSetpointCallback(
   can_msgs::msg::Frame & msg, const cybergear_driver_msgs::msg::SetpointStamped & setpoint_msg)
 {
   const auto can_frame = this->packet().createPositionCommand(setpoint_msg.point.position);
-  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
-  msg.id = can_frame->id;
+  std::copy(can_frame.data.cbegin(), can_frame.data.cend(), msg.data.begin());
+  msg.id = can_frame.id;
 }
 
 void CybergearPositionDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame & msg)
 {
   const auto can_frame = this->packet().createChangeToPositionModeCommand();
-  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
-  msg.id = can_frame->id;
+  std::copy(can_frame.data.cbegin(), can_frame.data.cend(), msg.data.begin());
+  msg.id = can_frame.id;
 }
 }  // namespace cybergear_socketcan_driver
 

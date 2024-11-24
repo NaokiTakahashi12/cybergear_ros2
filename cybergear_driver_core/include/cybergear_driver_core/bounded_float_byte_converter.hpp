@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include <cstring>
 #include <algorithm>
 #include <array>
@@ -47,18 +49,18 @@ public:
     updateRange();
   }
 
-  float toClampedFloat(const float value)
+  float toClampedFloat(const float value) const
   {
     return std::max(min_, std::min(max_, value));
   }
 
-  uint16_t toDoubleByte(const float value)
+  uint16_t toDoubleByte(const float value) const
   {
     const float clamped_value = toClampedFloat(value);
     return static_cast<uint16_t>((clamped_value - min_) * byte_scale_);
   }
 
-  std::array<uint8_t, 2> toTwoBytes(const float value)
+  std::array<uint8_t, 2> toTwoBytes(const float value) const
   {
     const uint16_t scaled_double_byte = toDoubleByte(value);
     return {
@@ -66,7 +68,7 @@ public:
       static_cast<uint8_t>(scaled_double_byte & 0x00ff)};
   }
 
-  std::array<uint8_t, 4> toFourBytes(const float value)
+  std::array<uint8_t, 4> toFourBytes(const float value) const
   {
     constexpr size_t kArrayLength = 4;
     const float clamped_float = toClampedFloat(value);
