@@ -403,15 +403,15 @@ return_type CybergearActuator::write(const rclcpp::Time& /*time*/,
   cybergear_driver_core::CanFrame frame;
   switch (command_mode_) {
     case cybergear_driver_core::run_modes::POSITION:
-      frame = *packet_->createPositionCommand(
+      frame = packet_->createPositionCommand(
           joint_commands_[cybergear_driver_core::run_modes::POSITION]);
       break;
     case cybergear_driver_core::run_modes::SPEED:
-      frame = *packet_->createVelocityCommand(
+      frame = packet_->createVelocityCommand(
           joint_commands_[cybergear_driver_core::run_modes::SPEED]);
       break;
     case cybergear_driver_core::run_modes::CURRENT:
-      frame = *packet_->createCurrentCommand(
+      frame = packet_->createCurrentCommand(
           joint_commands_[cybergear_driver_core::run_modes::CURRENT]);
       break;
   }
@@ -500,16 +500,16 @@ return_type CybergearActuator::switchCommandInterface(
   RCLCPP_INFO(get_logger(), "Send change run mode");
   switch (new_command_mode) {
     case cybergear_driver_core::run_modes::OPERATION:
-      frame = *packet_->createChangeToOperationModeCommand();
+      frame = packet_->createChangeToOperationModeCommand();
       break;
     case cybergear_driver_core::run_modes::POSITION:
-      frame = *packet_->createChangeToPositionModeCommand();
+      frame = packet_->createChangeToPositionModeCommand();
       break;
     case cybergear_driver_core::run_modes::SPEED:
-      frame = *packet_->createChangeToVelocityModeCommand();
+      frame = packet_->createChangeToVelocityModeCommand();
       break;
     case cybergear_driver_core::run_modes::CURRENT:
-      frame = *packet_->createChangeToCurrentModeCommand();
+      frame = packet_->createChangeToCurrentModeCommand();
       break;
   }
   send(frame);
