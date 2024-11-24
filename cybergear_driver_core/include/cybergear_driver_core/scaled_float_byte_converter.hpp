@@ -32,9 +32,8 @@ class ScaledFloatByteConverter
 {
 public:
   explicit ScaledFloatByteConverter(const float scale)
-  {
-    setScale(scale);
-  }
+  : scale_(scale)
+  {}
 
   ~ScaledFloatByteConverter() {}
 
