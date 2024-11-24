@@ -4,14 +4,13 @@
 
 #include <atomic>
 #include <cstdint>
-#include <mutex>
 #include <thread>
 
-#include "can_msgs/msg/frame.hpp"
 #include "cybergear_driver_core/cybergear_packet.hpp"
 #include "hardware_interface/actuator_interface.hpp"
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
+#include "realtime_buffer.hpp"
 #include "ros2_socketcan/socket_can_receiver.hpp"
 #include "ros2_socketcan/socket_can_sender.hpp"
 
@@ -79,14 +78,19 @@ private:
   std::chrono::nanoseconds timeout_ns_;
   std::unique_ptr<drivers::socketcan::SocketCanSender> sender_;
 
-  bool use_bus_time_;
   std::chrono::nanoseconds interval_ns_;
   std::unique_ptr<drivers::socketcan::SocketCanReceiver> receiver_;
   std::thread receiver_thread_;
 
+  struct Feedback {
+    cybergear_driver_core::CanData data;
+    bool fault;
+    bool error;
+    rclcpp::Time stamp;
+  };
+
   std::atomic_bool is_active_ = false;
-  can_msgs::msg::Frame last_received_frame_;
-  std::mutex last_frame_mutex_;
+  realtime_tools::RealtimeBuffer<Feedback> rtb_feedback_;
 };
 
 }  // namespace cybergear_control
