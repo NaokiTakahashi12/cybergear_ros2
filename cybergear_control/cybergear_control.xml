@@ -1,0 +1,7 @@
+<library path="cybergear_hardware_interface">
+  <class name="cybergear_control/CybergearActuator" type="cybergear_control::CybergearActuator" base_class_type="hardware_interface::ActuatorInterface">
+    <description>
+      Cybergear actuator some stuff is happening here, please change this text
+    </description>
+  </class>
+</library>
