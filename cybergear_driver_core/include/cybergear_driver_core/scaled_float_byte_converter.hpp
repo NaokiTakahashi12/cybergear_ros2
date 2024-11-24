@@ -23,6 +23,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 
 namespace cybergear_driver_core
 {
