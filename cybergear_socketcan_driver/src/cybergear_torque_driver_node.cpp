@@ -67,8 +67,8 @@ void CybergearTorqueDriverNode::sendCanFrameFromTrajectoryCallback(
     effort = single_joint_trajectory.getLerpEffort(this->get_clock()->now());
   }
   const auto can_frame = this->packet().createCurrentCommand(getDestCurrent(effort));
-  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
-  msg.id = can_frame->id;
+  std::copy(can_frame.data.cbegin(), can_frame.data.cend(), msg.data.begin());
+  msg.id = can_frame.id;
 }
 
 void CybergearTorqueDriverNode::sendCanFrameFromSetpointCallback(
@@ -76,15 +76,15 @@ void CybergearTorqueDriverNode::sendCanFrameFromSetpointCallback(
 {
   const auto can_frame =
     this->packet().createCurrentCommand(getDestCurrent(setpoint_msg.point.effort));
-  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
-  msg.id = can_frame->id;
+  std::copy(can_frame.data.cbegin(), can_frame.data.cend(), msg.data.begin());
+  msg.id = can_frame.id;
 }
 
 void CybergearTorqueDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame & msg)
 {
   const auto can_frame = this->packet().createChangeToCurrentModeCommand();
-  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
-  msg.id = can_frame->id;
+  std::copy(can_frame.data.cbegin(), can_frame.data.cend(), msg.data.begin());
+  msg.id = can_frame.id;
 }
 
 float CybergearTorqueDriverNode::getDestCurrent(const float dest_torque)

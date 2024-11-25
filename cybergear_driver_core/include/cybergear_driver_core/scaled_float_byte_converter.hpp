@@ -23,6 +23,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 
 namespace cybergear_driver_core
 {
@@ -31,9 +32,8 @@ class ScaledFloatByteConverter
 {
 public:
   explicit ScaledFloatByteConverter(const float scale)
-  {
-    setScale(scale);
-  }
+  : scale_(scale)
+  {}
 
   ~ScaledFloatByteConverter() {}
 

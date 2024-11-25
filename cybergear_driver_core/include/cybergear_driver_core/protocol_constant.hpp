@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 namespace cybergear_driver_core
 {
 namespace commands

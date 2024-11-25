@@ -88,8 +88,8 @@ void CybergearDefaultDriverNode::sendCanFrameFromTrajectoryCallback(
   move_param.kd = static_cast<float>(this->params().pid_gain.kd);
 
   const auto can_frame = this->packet().createMoveCommand(move_param);
-  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
-  msg.id = can_frame->id;
+  std::copy(can_frame.data.cbegin(), can_frame.data.cend(), msg.data.begin());
+  msg.id = can_frame.id;
 }
 
 void CybergearDefaultDriverNode::sendCanFrameFromSetpointCallback(
@@ -104,15 +104,15 @@ void CybergearDefaultDriverNode::sendCanFrameFromSetpointCallback(
   move_param.kd = static_cast<float>(this->params().pid_gain.kd);
 
   const auto can_frame = this->packet().createMoveCommand(move_param);
-  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
-  msg.id = can_frame->id;
+  std::copy(can_frame.data.cbegin(), can_frame.data.cend(), msg.data.begin());
+  msg.id = can_frame.id;
 }
 
 void CybergearDefaultDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame & msg)
 {
   const auto can_frame = this->packet().createChangeToOperationModeCommand();
-  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
-  msg.id = can_frame->id;
+  std::copy(can_frame.data.cbegin(), can_frame.data.cend(), msg.data.begin());
+  msg.id = can_frame.id;
 }
 }  // namespace cybergear_socketcan_driver
 

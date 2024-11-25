@@ -64,23 +64,23 @@ void CybergearVelocityDriverNode::sendCanFrameFromTrajectoryCallback(
     velocity = single_joint_trajectory.getLerpVelocity(this->get_clock()->now());
   }
   const auto can_frame = this->packet().createVelocityCommand(velocity);
-  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
-  msg.id = can_frame->id;
+  std::copy(can_frame.data.cbegin(), can_frame.data.cend(), msg.data.begin());
+  msg.id = can_frame.id;
 }
 
 void CybergearVelocityDriverNode::sendCanFrameFromSetpointCallback(
   can_msgs::msg::Frame & msg, const cybergear_driver_msgs::msg::SetpointStamped & setpoint_msg)
 {
   const auto can_frame = this->packet().createVelocityCommand(setpoint_msg.point.velocity);
-  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
-  msg.id = can_frame->id;
+  std::copy(can_frame.data.cbegin(), can_frame.data.cend(), msg.data.begin());
+  msg.id = can_frame.id;
 }
 
 void CybergearVelocityDriverNode::sendChangeRunModeCallback(can_msgs::msg::Frame & msg)
 {
   const auto can_frame = this->packet().createChangeToVelocityModeCommand();
-  std::copy(can_frame->data.cbegin(), can_frame->data.cend(), msg.data.begin());
-  msg.id = can_frame->id;
+  std::copy(can_frame.data.cbegin(), can_frame.data.cend(), msg.data.begin());
+  msg.id = can_frame.id;
 }
 }  // namespace cybergear_socketcan_driver
 
